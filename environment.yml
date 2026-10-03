@@ -1,0 +1,12 @@
+name: mapploid
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - numpy>=1.26
+  - scipy>=1.11
+  - pysam>=0.22
+  - samtools=1.24
+  - genmap=1.3.0
+  - pip

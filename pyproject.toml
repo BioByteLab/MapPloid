@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mapploid"
+version = "0.10.1"
+description = "Mapping-aware allele counts for plant ploidy inference"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+authors = [{name = "MapPloid developers"}]
+dependencies = [
+    "numpy>=1.26",
+    "pysam>=0.22",
+    "scipy>=1.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/BioByteLab/MapPloid"
+Repository = "https://github.com/BioByteLab/MapPloid"
+Issues = "https://github.com/BioByteLab/MapPloid/issues"
+
+[project.scripts]
+mapploid = "mapploid.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
