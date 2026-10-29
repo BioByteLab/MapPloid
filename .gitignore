@@ -9,7 +9,6 @@ dist/
 .env
 *.pem
 *.key
-validation/synthetic_e2e/
 *.fastq
 *.fastq.gz
 *.fq
@@ -22,8 +21,11 @@ validation/synthetic_e2e/
 
 # Generated examples and local validation artifacts
 examples/quickstart/output/
-validation/demo/
-validation/demo_schema3/
-validation/quickstart_pdf_png/
 .github_key*
 github_key.txt
+
+# Local validation outputs and design archives
+validation/
+assets/brand/review/
+assets/brand/source/
+release_manifest_*.json

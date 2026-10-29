@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-Run all commands below from `mapploid_v0.10.4/`. First activate an environment with the dependencies installed:
+Run all commands below from the repository root. First activate an environment with the dependencies installed:
 
 ```bash
 conda activate mapploid
@@ -20,10 +20,12 @@ The script creates small inputs, prepares reference regions, calls ploidy and pr
 Expect `Quickstart passed: CALLED 3x`, with **35,255** fitting SNPs.
 A measured fresh run took 12.3 seconds (an earlier run took 24 seconds); reuse usually takes about one second. Timing depends on the machine.
 
-- [Example report](output/result/report.html): ploidy result and three-row fitted-distribution figure.
-- [Main result table](output/result/result.tsv): six columns for downstream analysis.
-- [PDF](output/result/figures/evidence.pdf) / [PNG](output/result/figures/evidence.png): exported figure; the PNG is 300 dpi.
-- [Detailed record](output/result/details/run.json): settings, diagnostic reasons and warnings.
+After running the example, open these local files under `examples/quickstart/`:
+
+- Example report (`output/result/report.html`): ploidy result and three-row fitted-distribution figure.
+- Main result table (`output/result/result.tsv`): six columns for downstream analysis.
+- PDF (`output/result/figures/evidence.pdf`) / PNG (`output/result/figures/evidence.png`): exported figure; the PNG is 300 dpi.
+- Detailed record (`output/result/details/run.json`): settings, diagnostic reasons and warnings.
 
 Repeating the same command reuses completed results. Choose a new directory to run the full calculation again:
 

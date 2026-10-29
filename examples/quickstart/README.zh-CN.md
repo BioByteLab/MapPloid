@@ -2,7 +2,7 @@
 
 [English](README.md) | **简体中文**
 
-以下命令均在 `mapploid_v0.10.4/` 目录执行，先激活已安装依赖的环境：
+以下命令均在仓库根目录执行，先激活已安装依赖的环境：
 
 ```bash
 conda activate mapploid
@@ -20,10 +20,12 @@ python examples/quickstart/run.py
 预期看到 `Quickstart passed: CALLED 3x`，拟合位点数为 **35,255**。
 本次实测首次运行 12.3 秒（此前为 24 秒）；复用通常约 1 秒，耗时因机器而异。
 
-- [打开样例报告](output/result/report.html)：查看倍性结果和三行拟合图。
-- [主结果表](output/result/result.tsv)：六列，可直接用于后续分析。
-- [PDF](output/result/figures/evidence.pdf) / [PNG](output/result/figures/evidence.png)：可导出的图，PNG 为 300 dpi。
-- [详细记录](output/result/details/run.json)：参数、诊断原因和警告。
+运行样例后，在本地 `examples/quickstart/` 下打开以下文件：
+
+- 打开样例报告 (`output/result/report.html`)：查看倍性结果和三行拟合图。
+- 主结果表 (`output/result/result.tsv`)：六列，可直接用于后续分析。
+- PDF (`output/result/figures/evidence.pdf`) / PNG (`output/result/figures/evidence.png`)：可导出的图，PNG 为 300 dpi。
+- 详细记录 (`output/result/details/run.json`)：参数、诊断原因和警告。
 
 重复运行同一命令会复用结果。需要重新体验完整计算时，指定新的目录：
 

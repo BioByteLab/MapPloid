@@ -108,3 +108,16 @@ Figure ΔBIC values differ from the single TSV `delta_bic`, which compares the b
 | Search sample / All statuses | Search sample names and filter by status |
 
 Batch counts describe predictions, not accuracy. Click a sample name to open its report. An individual failure does not stop remaining samples. See [resuming and exit codes](CLI.md#exit-codes-and-resuming) for rerun behavior.
+
+## Run records and compatibility
+
+The main fit uses 25,000–100,000 SNPs. Above the maximum, deterministic sampling
+allocates quotas proportional to chromosome site counts. Analyzed region size
+is reported in Mb. Output schema is 3; old result directories must not be reused.
+
+`details/run.json` records input identities, requested and actual settings,
+random seed, stage summaries, model fits, diagnostics and plot data.
+BAM identity uses its path, size and modification time; indexes and the asset
+manifest also have SHA256 checksums. This is not a full BAM checksum.
+`details/run.log` records execution messages and exception details. A hidden
+completion marker and directory lock support verification and resuming.

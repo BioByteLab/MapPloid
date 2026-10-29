@@ -13,7 +13,7 @@ from mapploid.cli import main
 
 def run():
     root = ROOT / "validation" / "demo_schema3"
-    root.mkdir(exist_ok=True)
+    root.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(ROOT / "examples/quickstart"))
     from run import make_inputs
     ref, scores, covered = make_inputs(root)

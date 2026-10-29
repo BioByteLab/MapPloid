@@ -71,7 +71,7 @@ Blank lines and lines starting with `#` in BAM lists are ignored. Relative paths
 | --min-allele-reads N | 2 | Minimum supporting reads for each retained allele |
 | --pair-purity FLOAT | 0.95 | Minimum fraction of valid base counts explained by the two leading alleles |
 
-Frequencies use the sum of the two leading allele counts. Site depth uses all quality-filtered A/C/G/T counts; it is not whole-sample sequencing depth. Automatic depth bounds are estimated per analysis stage and recorded in the report. The public `call` command uses the built-in model decision settings; these are described in the [main documentation](../README.md).
+Frequencies use the sum of the two leading allele counts. Site depth uses all quality-filtered A/C/G/T counts; it is not whole-sample sequencing depth. Automatic depth bounds are estimated per analysis stage and recorded in the report. The public `call` command uses the built-in model decision settings; these are described in the [report guide](REPORT_GUIDE.md).
 
 ## Quickstart script
 
@@ -92,3 +92,24 @@ python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 | 130 | Interrupted during execution |
 
 Rerun the same command to resume or reuse verified results. Changed inputs, settings, output options or software version require a new output directory. Failed/interrupted samples retain checkpoints. For a missing BAM, supply the file and rerun the same batch command. Execution details are in `details/run.log`; structured reasons and warnings are in `details/run.json`. See the [report guide](REPORT_GUIDE.md) for their interpretation.
+
+## Input checks
+
+BAMs must be coordinate-sorted and indexed with a BAI or CSI. Reference sequence
+names and lengths must match. `--assets` is the directory produced by
+`prepare --out`, not a FASTA or BED file.
+
+Reference preparation defaults: `--kmer 150`, two GenMap mismatches,
+`--min-region-length 10000`, `--threads 8`. Optional `--exclude-bed` may be
+repeated. `--genmap-bedgraph` can supply existing matching GenMap scores.
+Strict score-1 regions are retained after gaps and exclusions; short regions
+are not joined across gaps. Use a new asset directory for changed preparation
+settings. The source FASTA must remain accessible.
+
+This release preserves the manuscript v20 source's read-length check: up to
+10,000 primary alignments are inspected, and reads shorter than the asset k-mer
+length cause an input error.
+
+Both leading alleles must pass the frequency interval. Sample names may contain letters, digits, dots, underscores and hyphens.
+
+Successful compact runs remove stage directories only after final outputs are verified; completed UNCERTAIN runs also use compact cleanup. `--keep-details` retains stage data. Only one process may use an output directory at a time. Sample cleanup never removes reference assets.
