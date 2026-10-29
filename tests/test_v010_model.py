@@ -36,12 +36,12 @@ class ModelCorrections(unittest.TestCase):
                 np.array([4]), np.array([2]), np.array([100]), p, .03, .7, .15, .85)
             self.assertAlmostEqual(ll, 0., places=10)
 
-    def test_insufficient_chromosomes_never_bypass_conflict(self):
+    def test_chromosome_diagnostics_record_shortage_and_conflict(self):
         for n in (0, 1, 2):
-            self.assertIn('INSUFFICIENT_CHROMOSOME_EVIDENCE', model.chromosome_evidence_reasons(n, 1.))
-        self.assertEqual(model.chromosome_evidence_reasons(10, .70), [])
-        self.assertIn('CHROMOSOME_HETEROGENEITY', model.chromosome_evidence_reasons(1, 0.))
-        self.assertIn('CHROMOSOME_HETEROGENEITY', model.chromosome_evidence_reasons(10, .69))
+            self.assertIn('INSUFFICIENT_CHROMOSOME_EVIDENCE', model.chromosome_evidence_warnings(n, 1.))
+        self.assertEqual(model.chromosome_evidence_warnings(10, .70), [])
+        self.assertIn('CHROMOSOME_HETEROGENEITY', model.chromosome_evidence_warnings(1, 0.))
+        self.assertIn('CHROMOSOME_HETEROGENEITY', model.chromosome_evidence_warnings(10, .69))
 
     def test_failed_models_do_not_vote_in_bootstrap_or_chromosomes(self):
         fits = {p: model.ModelFit(p, -100., 200.+p, .03, .7 if p==4 else None, p!=4, 1)

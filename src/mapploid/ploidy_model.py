@@ -25,8 +25,10 @@ from scipy.optimize import minimize
 from scipy.special import betaln, gammaln, logsumexp
 
 from . import __version__
-MODEL_VERSION = "beta-binomial-v7-configurable-filters"
+MODEL_VERSION = "beta-binomial-v8-three-call-gates-output3"
 MIN_ALLELE_READS = 2
+DEFAULT_MIN_SITES = 25_000
+DEFAULT_MAX_SITES = 100_000
 DEFAULT_TETRAPLOID_A_MIN = 4 / 7
 DEFAULT_SENSITIVITY_A_MIN = 0.5001
 DEFAULT_MAX_FIT_JS = 0.05
@@ -74,18 +76,19 @@ class PloidyModelConfig:
     counts: Path
     output_dir: Path
     sample: str | None = None
-    max_sites: int = 50_000
-    min_sites: int = 5_000
+    max_sites: int = DEFAULT_MAX_SITES
+    min_sites: int = DEFAULT_MIN_SITES
     allele_min: float = 0.15
     allele_max: float = 0.85
     rho_min: float = 1e-5
     rho_max: float = 0.25
     tetraploid_a_min: float = DEFAULT_TETRAPLOID_A_MIN
     sensitivity_a_min: float = DEFAULT_SENSITIVITY_A_MIN
+    # Diagnostic warning thresholds; these do not veto a ploidy call.
     max_fit_js: float = DEFAULT_MAX_FIT_JS
     block_size: int = 5_000_000
     bootstrap_replicates: int = 100
-    bootstrap_support: float = 0.95
+    bootstrap_support: float = 0.85
     delta_bic: float = 10.0
     min_blocks: int = 5
     chromosome_support: float = 0.70
@@ -235,7 +238,7 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
     if delta_bic < config.delta_bic:
         reasons.append("LOW_DELTA_BIC")
     if config.bootstrap_replicates and support < config.bootstrap_support:
-        reasons.append("LOW_BOOTSTRAP_SUPPORT")
+        warnings.append("LOW_BOOTSTRAP_SUPPORT")
     rho_tolerance = 0.01 * (config.rho_max - config.rho_min)
     if (
         best.rho <= config.rho_min + rho_tolerance
@@ -250,16 +253,14 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
             warnings.append("A_AT_UPPER_BOUNDARY")
     if sensitivity_best.ploidy != best.ploidy:
         warnings.append("MODEL_ASSUMPTION_SENSITIVE")
-    reasons.extend(chromosome_evidence_reasons(
+    warnings.extend(chromosome_evidence_warnings(
         informative_chromosomes, chromosome_agreement,
         config.min_informative_chromosomes, config.chromosome_support,
     ))
     if not all(fit.converged for fit in fits.values()):
         reasons.append("MODEL_NOT_CONVERGED")
     if not math.isfinite(fit_js) or fit_js > config.max_fit_js:
-        reasons.append("POOR_THEORETICAL_FIT")
-    if best.ploidy == 2:
-        warnings.append("DISOMIC_4X_NOT_EXCLUDED")
+        warnings.append("POOR_THEORETICAL_FIT")
 
     predicted = "UNCERTAIN" if reasons else PREDICTION_LABELS[best.ploidy]
     qc_status = "FAIL" if reasons else ("WARNING" if warnings else "PASS")
@@ -295,7 +296,16 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
         "warnings": "NONE" if not warnings else ";".join(warnings),
     }
     write_result(outputs["result"], result, votes, config.bootstrap_replicates)
+    profiles = {p: fitted_frequency_profile(
+        data.histogram, fits[p], config.allele_min, config.allele_max,
+        config.min_allele_reads) for p in PLOIDIES}
+    observed, _, edges = profiles[best.ploidy]
     manifest = {
+        "frequency_profile": {"edges": edges, "observed": observed,
+                              "fitted_models": {str(p): profiles[p][1] for p in PLOIDIES},
+                              "sites": data.selected_sites,
+                              "definition": "minor count / sum of the two leading allele counts",
+                              "model": f"{best.ploidy}x"},
         "workflow": "ploidy-model",
         "model_version": MODEL_VERSION,
         "mapploid_version": __version__,
@@ -328,13 +338,14 @@ def retained_count_bounds(depth, allele_min: float, allele_max: float,
             np.minimum(n - min_allele_reads, np.floor(upper * n + 1e-12).astype(int)))
 
 
-def chromosome_evidence_reasons(informative, agreement, minimum=3, support=0.70):
-    reasons = []
+def chromosome_evidence_warnings(informative, agreement, minimum=3, support=0.70):
+    """Report chromosome diagnostics without vetoing the global BIC call."""
+    warnings = []
     if informative < minimum:
-        reasons.append("INSUFFICIENT_CHROMOSOME_EVIDENCE")
+        warnings.append("INSUFFICIENT_CHROMOSOME_EVIDENCE")
     if informative and agreement < support:
-        reasons.append("CHROMOSOME_HETEROGENEITY")
-    return reasons
+        warnings.append("CHROMOSOME_HETEROGENEITY")
+    return warnings
 
 
 def validate_counts_contract(counts: Path, config: PloidyModelConfig):
@@ -584,6 +595,30 @@ def theoretical_fit_js_divergence(
     confusing finite read depth with model failure.
     """
 
+    observed, predicted, _ = fitted_frequency_profile(
+        histogram, fit, allele_min, allele_max, min_allele_reads, bin_width)
+    observed = np.asarray(observed)
+    predicted = np.asarray(predicted)
+    if observed.sum() == 0 or predicted.sum() == 0:
+        return math.inf
+
+    middle = (observed + predicted) / 2
+    observed_mask = observed > 0
+    predicted_mask = predicted > 0
+    divergence = 0.5 * (
+        np.sum(observed[observed_mask] * np.log2(
+            observed[observed_mask] / middle[observed_mask]
+        ))
+        + np.sum(predicted[predicted_mask] * np.log2(
+            predicted[predicted_mask] / middle[predicted_mask]
+        ))
+    )
+    return float(divergence)
+
+
+def fitted_frequency_profile(histogram, fit, allele_min, allele_max,
+                             min_allele_reads=MIN_ALLELE_READS, bin_width=DEFAULT_FIT_BIN_WIDTH):
+    """Folded minor-allele frequency probabilities for the exact fitted site set."""
     lower = max(0.0, min(allele_min, 1 - allele_max))
     bins = max(1, int(math.ceil((0.5 - lower) / bin_width)))
     observed = np.zeros(bins, dtype=float)
@@ -620,21 +655,11 @@ def theoretical_fit_js_divergence(
             predicted[index(minor_baf)] += depth_frequency * probability
 
     if observed.sum() == 0 or predicted.sum() == 0:
-        return math.inf
+        return observed.tolist(), predicted.tolist(), []
     observed /= observed.sum()
     predicted /= predicted.sum()
-    middle = (observed + predicted) / 2
-    observed_mask = observed > 0
-    predicted_mask = predicted > 0
-    divergence = 0.5 * (
-        np.sum(observed[observed_mask] * np.log2(
-            observed[observed_mask] / middle[observed_mask]
-        ))
-        + np.sum(predicted[predicted_mask] * np.log2(
-            predicted[predicted_mask] / middle[predicted_mask]
-        ))
-    )
-    return float(divergence)
+    edges = [lower + i * bin_width for i in range(bins)] + [0.5]
+    return observed.tolist(), predicted.tolist(), edges
 
 
 def component_weights(

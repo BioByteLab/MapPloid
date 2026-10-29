@@ -1,0 +1,10 @@
+[MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/assets; use --assets /work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/assets for call
+[MapPloid] synthetic_3x: analyzing 0.036 Mb
+Matplotlib is building the font cache; this may take a moment.
+[MapPloid] synthetic_3x: 3x; report: /work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/result/report.html
+/work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/assets
+/work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/result/result.tsv
+Quickstart passed: CALLED 3x; 35255 fitting SNPs; 24.0 seconds
+Report: /work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/result/report.html
+Table:  /work/test/MapPloid/src/mapploid_v0.10.4/examples/quickstart/output/result/result.tsv

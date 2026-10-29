@@ -1,31 +1,20 @@
-# MapPloid
+# MapPloid 0.10.4
 
-Mapping-aware allele counts for plant ploidy screening from whole-genome resequencing alignments.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/mapploid-wordmark-white.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/mapploid-wordmark-transparent.svg">
+    <img src="assets/brand/mapploid-wordmark.svg" width="580" alt="MapPloid">
+  </picture>
+</p>
 
-[中文说明](README.zh-CN.md)
+**English** | [简体中文](README.zh-CN.md)
 
-MapPloid builds reusable high-mappability reference regions, extracts allele counts from BAM files, and compares diploid, triploid and polysomic-like tetraploid models. It expands the analysed region when evidence is insufficient and reports `UNCERTAIN` when the configured evidence requirements are not met.
+Infer plant ploidy from allele frequencies in high-mappability reference regions.
 
-## Availability and requirements
-
-| Item | Description |
-| --- | --- |
-| Project | MapPloid |
-| Version | 0.10.1 |
-| Intended project URL | https://github.com/BioByteLab/MapPloid |
-| Operating system | Linux; tested on Ubuntu |
-| Language | Python |
-| Python requirements | Python >=3.10, NumPy >=1.26, SciPy >=1.11, pysam >=0.22 |
-| External tools | GenMap and SAMtools, available on `PATH` |
-| License | [MIT](LICENSE) |
-| Restrictions on non-academic use | None beyond the MIT license terms |
-| Archived version / DOI | Not yet assigned |
-
-The repository URL is the intended publication destination until the repository is created. A Git tag or GitHub URL is not a DOI. See [availability details](docs/availability.md).
+[Logo assets and usage](assets/brand/README.md)
 
 ## Installation
-
-Use a separate environment. The environment file includes the external tools:
 
 ```bash
 conda env create -f environment.yml
@@ -34,53 +23,216 @@ python -m pip install --no-deps .
 mapploid --version
 ```
 
-Alternatively, install the Python package into an existing compatible environment with `python -m pip install .` and separately provide GenMap and SAMtools on `PATH`. SAMtools must support the `mpileup --no-output-ins`, `--no-output-del` and `--no-output-ends` options used by the counting backend.
+The environment includes SAMtools, GenMap and the Python dependencies.
+License: [MIT](LICENSE). [Availability](docs/availability.md).
 
 ## Quick start
 
 ```bash
-mapploid prepare --reference genome.fa --read-length 125 --threads 8 --out reference_assets
-mapploid call --bam sample.bam --assets reference_assets --out sample_result
+conda activate mapploid
+./mapploid prepare --reference genome.fa --kmer 125 --out reference_assets
+./mapploid call --bam sample.bam --assets reference_assets --out sample_result
+./mapploid call --bam-list bams.txt --assets reference_assets --out batch_results
 ```
 
-The reference must be an uncompressed FASTA. The BAM must be coordinate-sorted, indexed and use the same reference sequence dictionary. Choose the read length for your actual reads; do not reuse PE150 assets for PE125 reads. Exclude organellar or other unwanted regions with `prepare --exclude-bed` when appropriate.
+Open `report.html` in a browser. Reports work offline and contain their own figures.
+Use `result.tsv` for downstream analysis.
 
-Reference preparation is performed once per compatible reference/read-length configuration. Sample analysis proceeds through approximately 20, 50 and 100 Mb of spatially distributed high-mappability sequence, stopping when evidence is sufficient. This public interface does not fall back to the complete mask.
+Python 3.10+, NumPy, SciPy, pysam and matplotlib are required, plus SAMtools and
+GenMap on PATH. Install this directory with `python -m pip install .`, or use its
+`mapploid` launcher with an existing environment. `--version` reports 0.10.4.
 
-Outputs:
+## One-command example (no downloads)
 
-- `result.tsv`: predicted ploidy, status and supporting evidence.
-- `regions.bed`: the final analysed regions.
-- `details/`: configuration, stage results, diagnostics and logs.
-
-Use a new output directory after changing inputs, software version or filtering parameters. Completed stages are reused only after consistency checks. Do not use the same output directory concurrently.
-
-## Validation and minimal example
-
-Run the existing test suite from the repository root:
+From this version directory, with the MapPloid environment active:
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+python examples/quickstart/run.py
 ```
 
-Generate a small deterministic reference and artificial BAM examples, then run real GenMap, SAMtools and the default MapPloid model:
+The example generates a 36 kb toy reference and a sorted/indexed synthetic 3x
+BAM, prepares assets using supplied toy mappability scores, and runs the public
+`call` command with the default filters, 25,000-SNP minimum and 100 bootstrap
+replicates. It checks for `CALLED 3x` and exits successfully. No GenMap run or
+network access is needed for this example; Python dependencies and SAMtools
+must already be installed. The supplied scores are a fixture, not measured
+mappability of the toy all-A reference. This checks the workflow, not biological
+accuracy or GenMap.
+
+Results: `examples/quickstart/output/result/report.html` and `result.tsv`;
+PDF/PNG: `examples/quickstart/output/result/figures/`. Repeat the same command
+to reuse the completed result, or add `--out /path/to/new-example` for a fresh run.
+See the [quickstart tutorial](examples/quickstart/README.md) for the quick test,
+step-by-step reference preparation, single-sample calls and batch analysis.
+
+## English and Chinese documentation
+
+All documentation is available in English and Simplified Chinese; use the links
+at the top of each page to switch versions. Commands, code and code comments
+use English. CLI help, runtime logs, report labels, fields and diagnostic
+identifiers also use English for consistent lookup and programmatic use.
+Both languages explain them in the [command-line reference](docs/CLI.md)
+and [report guide](docs/REPORT_GUIDE.md).
+
+## Results
+
+```text
+sample_result/
+  result.tsv
+  report.html
+  regions.bed
+  details/
+    run.json
+    run.log
+```
+
+A small hidden completion marker and lock support result verification and resuming.
+
+| result.tsv column | Meaning |
+|---|---|
+| sample | Sample name |
+| predicted_ploidy | 2x, 3x, 4x, UNCERTAIN; NA for a failed run |
+| status | CALLED, UNCERTAIN or FAILED |
+| selected_sites | SNPs actually used in the main model fit |
+| delta_bic | Second-best BIC minus best BIC |
+| analyzed_region_mb | Final analysis region size, in Mb |
+
+Missing/uncomputed table values are NA; JSON uses null for non-finite values.
+Machine-readable numeric values retain their precision. Output schema is **3**,
+separate from the software version. Old result directories must not be reused.
+
+The report shows:
+- The final call and three decision requirements: at least 25,000 fitting SNPs,
+  delta BIC at least 10, and convergence of all three main models.
+- Bootstrap stability, informative chromosome count and chromosome agreement,
+  and observed-versus-fitted shape (JS divergence).
+- One figure with three rows: observed versus fitted minor-allele frequency
+  distributions for 2x, 3x and 4x, with relative BIC and the best candidate marked.
+  All rows use the actual fitting site set, common bins and common axis scales.
+- Expandable detailed warnings, per-reference-sequence fits and actual filters.
+
+Diagnostic warnings do not veto a call. Bootstrap support is a resampling
+agreement rate, not a probability that the call is correct. An UNCERTAIN result
+may have a best candidate; the report labels it as a candidate only. When no
+sites or no coverage are available, the report explains why without empty plots.
+No informative chromosomes means agreement is not assessable, rather than 0%.
+
+`details/run.json` records input identities, requested and actual settings,
+random seed, stage summaries, model fits, diagnostic metrics and plot data.
+`reason` and `warnings` are retained in `details/run.json` under `result`,
+and in the report’s collapsed detailed diagnostics, rather than the main TSV.
+`details/run.log` contains execution messages and exception details.
+BAM identity uses its path, size and modification time; indexes and the asset
+manifest also have SHA256 checksums. This does not claim a full BAM checksum.
+
+### Optional output
 
 ```bash
-python scripts/validate_synthetic.py
+# Preserve stage tables, bootstrap replicates and intermediate site data.
+./mapploid call --bam sample.bam --assets reference_assets --out detailed --keep-details
+
+# Also export the three-row evidence figure in PDF and 300-dpi PNG.
+./mapploid call --bam sample.bam --assets reference_assets --out exported --export-figures
 ```
 
-Expected final message: `SYNTHETIC_END_TO_END_OK: 2x, 3x, 4x`.
-The generated inputs and output tables are placed in `validation/synthetic_e2e/`.
-These deliberately simplified examples test software integration, not biological accuracy or realistic sequencing depth limits. See [validation notes](validation/README.md).
+Default compact runs retain stage checkpoints while running. Only after final
+outputs are written and verified are stage directories removed. Interrupted and
+failed runs retain their checkpoints. Successfully completed UNCERTAIN analyses
+also use compact cleanup. `--keep-details` retains these directories.
 
-## Interpretation and limitations
+Rerun the same command to resume. Completed results are checked and reused;
+incomplete stages continue from retained checkpoints. Changed inputs, settings,
+output options or software version require a new output directory. Only one
+process may use an output directory at a time. Reference assets are never
+removed by sample-result cleanup.
 
-Labels `2x`, `3x` and `4x` indicate compatibility with the implemented allele-count models; they do not directly count chromosomes. A `2x` result cannot exclude disomic tetraploidy, and `4x` does not establish autopolyploid origin. Higher ploidies and unmodelled dosage patterns may receive misleading confident labels, rather than necessarily returning `UNCERTAIN`.
+## Batch analysis
 
-The default evidence rules require at least three informative reference chromosomes. Fragmented assemblies and limited genomic regions have not been validated as equivalent substitutes. Confidence measures describe model stability and are not posterior probabilities of biological ploidy. Independent cytometric or cytological evidence remains important.
+`bams.txt` contains one BAM path per line. Blank lines and lines beginning with
+`#` are ignored. Relative paths resolve from the list's directory. Samples must
+share a reference and have distinct BAM filenames. Sample names can contain
+letters, digits, dots, underscores and hyphens.
 
-Software tests do not establish that this public release reproduces every historical manuscript result. Earlier experiments used frozen versions and must retain their actual version identifiers. Broader simulator and species-matched validation is ongoing; no universal depth threshold is claimed here.
+```text
+batch_results/
+  result.tsv       Same six columns, plus relative result_file
+  report.html      Search/filter samples and open individual reports
+  samples/
+    sample_A/
+    sample_B/
+  details/
+    run.json
+    run.log
+```
 
-## Citation and support
+The overview updates after each sample. A runtime failure is recorded as FAILED
+and remaining samples continue; exit code is 1 if any sample failed. UNCERTAIN
+is a completed analysis, not a runtime failure. An interrupted command exits
+with code 130. Missing BAMs can be supplied and failed samples retried by rerunning
+the same batch command. The report shows prediction counts, not accuracy.
 
-The manuscript is in preparation; no published article DOI is assigned. Report the software version and commit used in analyses. Once the repository is public, use its Issues page for reproducible bug reports without uploading private or large sequencing datasets.
+## Inputs and filters
+
+BAMs must be coordinate-sorted and indexed with a BAI or CSI. Reference sequence
+names and lengths must match. `--assets` is the directory produced by
+`prepare --out`, not a FASTA or BED file.
+
+Reference preparation defaults: `--kmer 150`, two GenMap mismatches,
+`--min-region-length 10000`, `--threads 8`. Optional `--exclude-bed` may be
+repeated. `--genmap-bedgraph` can supply existing matching GenMap scores.
+Strict score-1 regions are retained after gaps and exclusions; short regions
+are not joined across gaps. Use a new asset directory for changed preparation
+settings. The source FASTA must remain accessible.
+
+This release preserves the manuscript v20 source's read-length check: up to
+10,000 primary alignments are inspected, and reads shorter than the asset k-mer
+length cause an input error.
+
+| call option | Default |
+|---|---|
+| --allele-min / --allele-max | 0.15 / 0.85 |
+| --min-depth / --max-depth | Automatic, estimated per analysis stage |
+| --min-mapq / --min-baseq | 20 / 20 |
+| --min-allele-reads | 2 |
+| --pair-purity | 0.95 |
+
+Allele frequencies use the sum of the two leading allele counts. Both must
+pass the requested frequency interval. Site depth uses total A/C/G/T counts
+after quality filtering and is not whole-sample sequencing depth. Depth bounds
+are inclusive. Actual bounds are in the report and run record.
+
+## Decision and diagnostic rules
+
+The analysis begins with about 20 Mb, expanding to about 50 and 100 Mb if the
+three decision requirements fail. Smaller references use available regions.
+The main fit uses at least 25,000 and at most 100,000 SNPs. Above the maximum,
+deterministic sampling allocates quotas proportional to chromosome counts.
+
+Three decision failures produce uncertainty: LOW_SITE_COUNT, LOW_DELTA_BIC,
+MODEL_NOT_CONVERGED. NO_ELIGIBLE_REGIONS, NO_COVERAGE and NO_VALID_SITES also
+produce UNCERTAIN without a usable model fit. Runtime errors produce FAILED.
+
+Priority diagnostics:
+- LOW_BOOTSTRAP_SUPPORT: agreement below 0.85 across 100 planned block
+  bootstrap replicates; unresolved replicates remain in the denominator.
+- INSUFFICIENT_CHROMOSOME_EVIDENCE: fewer than 3 informative reference sequences.
+- CHROMOSOME_HETEROGENEITY: agreement below 70% among informative sequences.
+  An informative sequence has at least 200 fitting SNPs, converged models
+  with finite BIC, and delta BIC at least 10.
+- POOR_THEORETICAL_FIT: JS divergence above 0.05 or not finite.
+
+Detailed diagnostics retain TOO_FEW_BLOCKS (fewer than five occupied 5 Mb
+blocks), RHO_AT_BOUNDARY, A_AT_BOUNDARY, A_AT_UPPER_BOUNDARY and
+MODEL_ASSUMPTION_SENSITIVE. These are warnings only.
+
+## Compatibility and development
+
+Reference assets from 0.10.1, 0.10.2 and 0.10.3 remain readable. Sample outputs
+require new directories. Version 0.10.4 changes presentation and removes the
+automatic 2x interpretation warning; the likelihoods, site selection and three
+decision gates are unchanged. See [release notes](RELEASE_NOTES_0.10.4.md)
+and [validation record](validation/README.md).
+
+```bash
+PYTHONPATH=src python -B -m unittest discover -s tests -v
+```

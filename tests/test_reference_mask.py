@@ -35,7 +35,7 @@ class ReferenceMaskTests(unittest.TestCase):
                 ReferenceMaskConfig(
                     reference=reference,
                     output_dir=root / "output",
-                    read_length=10,
+                    kmer_length=10,
                     mismatches=1,
                     genmap_bedgraph=bedgraph,
                     gap_padding=0,
@@ -62,7 +62,7 @@ class ReferenceMaskTests(unittest.TestCase):
             self.assertIn("low_mappability_or_edge", reasons)
             manifest = json.loads(results["manifest"].read_text(encoding="utf-8"))
             self.assertEqual(manifest["workflow"], "reference-mask")
-            self.assertEqual(manifest["run_config"]["read_length"], 10)
+            self.assertEqual(manifest["run_config"]["kmer_length"], 10)
 
     def test_reuses_genmap_output_prefix_from_interrupted_run(self):
         with TemporaryDirectory() as temporary:
@@ -80,7 +80,7 @@ class ReferenceMaskTests(unittest.TestCase):
                 ReferenceMaskConfig(
                     reference=reference,
                     output_dir=output,
-                    read_length=10,
+                    kmer_length=10,
                     mismatches=1,
                     genmap_executable="definitely-not-installed",
                 )
@@ -98,7 +98,7 @@ class ReferenceMaskTests(unittest.TestCase):
                 ReferenceMaskConfig(
                     reference=reference,
                     output_dir=output,
-                    read_length=10,
+                    kmer_length=10,
                     mismatches=1,
                     genmap_executable="definitely-not-installed",
                 )

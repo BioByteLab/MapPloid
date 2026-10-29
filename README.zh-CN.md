@@ -1,95 +1,211 @@
-# MapPloid 0.10.1
+# MapPloid 0.10.4
 
-通过参考基因组可比对性筛选区域，再利用这些区域中的等位基因比例判定植物倍性。
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/mapploid-wordmark-white.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/mapploid-wordmark-transparent.svg">
+    <img src="assets/brand/mapploid-wordmark.svg" width="580" alt="MapPloid">
+  </picture>
+</p>
 
-本目录是独立版本。直接运行本目录的 `mapploid` 文件即可，无需重新安装或覆盖旧环境。
+[English](README.md) | **简体中文**
+
+通过参考基因组高可比对区域中的等位基因频率推断植物倍性。
+
+[图标文件与使用说明](assets/brand/README.zh-CN.md)
+
+## 安装
+
+```bash
+conda env create -f environment.yml
+conda activate mapploid
+python -m pip install --no-deps .
+mapploid --version
+```
+
+环境包含 SAMtools、GenMap 和 Python 依赖。
+许可证：[MIT](LICENSE)。[软件可用性](docs/availability.zh-CN.md)。
+
+## 快速开始
 
 ```bash
 conda activate mapploid
-MP=./mapploid
-
-# 同一参考、读长和筛选设置准备一次
-"$MP" prepare --reference genome.fa --read-length 150 --out reference_assets
-
-# 每个样本一条命令
-"$MP" call --bam sample.bam --assets reference_assets --out result
+./mapploid prepare --reference genome.fa --kmer 125 --out reference_assets
+./mapploid call --bam sample.bam --assets reference_assets --out sample_result
+./mapploid call --bam-list bams.txt --assets reference_assets --out batch_results
 ```
 
-也可用已有 Python 环境直接启动：
+在浏览器中打开 `report.html`。报告可离线使用，图形已内嵌。
+后续分析使用 `result.tsv`。
+
+需要 Python 3.10+、NumPy、SciPy、pysam、matplotlib，以及 PATH 中的 SAMtools 和 GenMap。
+在本版本目录运行 `python -m pip install .` 安装，或在已有依赖的环境中使用本目录的 `mapploid` 启动器。
+`--version` 显示 0.10.4。
+
+## 一键示例（无需下载）
+
+激活 MapPloid 环境后，在本版本目录运行：
 
 ```bash
-python "$MP" --version
+python examples/quickstart/run.py
 ```
 
-参考需要为未压缩 FASTA；BAM 需要按坐标排序、有 BAI/CSI 索引，并与参考序列字典一致。读长按实际测序或剪切后的 reads 设置；程序抽查前 10,000 条主要比对，发现短于资产读长的 reads 时提示重建相容的区域资产。混合读长数据应按较短读长准备。参考有叶绿体、线粒体等不参与目标分析的序列时，可在准备阶段用 `--exclude-bed` 排除。
+示例生成 36 kb 人工参考序列及已排序、已索引的合成三倍体 BAM，利用提供的人工 mappability 分数准备参考资源，
+再执行公开的 `call` 命令。使用默认过滤、25,000 个 SNP 的最低门槛和 100 次 bootstrap。
+脚本检查结果为 `CALLED 3x` 后正常退出。示例无需运行 GenMap，也无需联网；Python 依赖和 SAMtools 必须事先安装。
+提供的分数是测试数据，并非对全 A 人工参考序列测得的 mappability。该示例验证软件流程，不评价生物学准确率，也不验证 GenMap。
 
-`prepare` 的可选参数为 `--threads`、`--exclude-bed` 和 `--genmap-bedgraph`。最后一项用于复用与该参考、读长及 2 个错配设置一致的 GenMap bedGraph；使用者需确认来源一致。日常 `call` 只需 BAM、资产目录和输出目录，也可用 `--sample` 指定样本名。
+结果位于 `examples/quickstart/output/result/report.html` 和 `result.tsv`；
+PDF/PNG 位于 `examples/quickstart/output/result/figures/`。
+重复运行相同命令会复用已完成结果；添加 `--out /path/to/new-example` 可重新运行。
+[快速入门教程](examples/quickstart/README.zh-CN.md) 包含快速测试、参考准备、单样本判定和批量分析。
 
-`call` 支持以下可选过滤参数；省略时沿用默认设置，无需修改源码：
+## 中英文说明
 
-| 参数 | 默认值 | 含义 |
-|---|---|---|
-| `--allele-min` | `0.15` | 两个主要等位基因各自频率的下限 |
-| `--allele-max` | `0.85` | 两个主要等位基因各自频率的上限 |
-| `--min-depth` | 自动 | 位点有效深度下限，正整数 |
-| `--max-depth` | 自动 | 位点有效深度上限，正整数 |
-| `--min-mapq` | `20` | 最低比对质量，0–255 |
-| `--min-baseq` | `20` | 最低碱基质量，0–255 |
-| `--min-allele-reads` | `2` | 每个等位基因至少需要的支持 reads 数，正整数 |
-| `--pair-purity` | `0.95` | 两个主要等位基因合计占有效碱基计数的最低比例，0.5–1 |
+所有说明均提供英文与简体中文版本，页首可切换语言。
+命令、代码及代码注释使用英文；命令行帮助、运行日志、报告标签、字段和诊断标识也使用英文，便于检索及程序处理。
+对应的中文解释见 [命令行参考](docs/CLI.zh-CN.md) 和 [报告阅读指南](docs/REPORT_GUIDE.zh-CN.md)。
 
-例如，指定深度范围为 5–100，其余使用默认值：
+## 结果
+
+```text
+sample_result/
+  result.tsv
+  report.html
+  regions.bed
+  details/
+    run.json
+    run.log
+```
+
+一个小型隐藏完成标记及目录锁用于校验结果和续跑。
+
+| result.tsv 列名 | 含义 |
+|---|---|
+| sample | 样本名称 |
+| predicted_ploidy | 2x、3x、4x 或 UNCERTAIN；运行失败时为 NA |
+| status | CALLED、UNCERTAIN 或 FAILED |
+| selected_sites | 主模型实际拟合使用的 SNP 数 |
+| delta_bic | 次优模型 BIC 减去最优模型 BIC |
+| analyzed_region_mb | 最终分析区域大小，单位 Mb |
+
+缺失或未计算的表格值为 NA；JSON 中非有限数值使用 null。
+机器可读的数值保留原精度。输出结构版本为 **3**，与软件版本独立。
+旧版结果目录不能直接复用。
+
+报告包含：
+
+- 最终判定，以及三项判定要求：至少 25,000 个拟合 SNP、delta BIC 至少为 10、三个主模型全部收敛。
+- Bootstrap 稳定性、有效染色体数量及一致率，以及观测分布与拟合分布的形状差异（JS 散度）。
+- 一张三行拟合图：分别比较 2x、3x、4x 模型的观测与拟合次要等位基因频率分布，标注相对 BIC 和最佳候选。
+  三行使用实际拟合位点集、相同分箱及统一坐标尺度。
+- 可展开的详细警告、各参考序列的拟合结果和实际过滤参数。
+
+诊断警告不会否决倍性判定。Bootstrap 支持度是重采样一致率，并非判定正确的概率。
+UNCERTAIN 结果可能有最佳候选，报告只将其标记为候选。
+没有可用位点或覆盖时，报告说明原因，不生成空图。
+没有有效染色体时，一致率不可评估，而不是 0%。
+
+`details/run.json` 记录输入身份、请求与实际设置、随机种子、各阶段摘要、模型拟合、诊断指标和绘图数据。
+`reason`、`warnings` 保留在该文件的 `result` 下及报告的折叠诊断中，不占用主结果表的列。
+`details/run.log` 记录执行消息及异常详情。
+BAM 身份由路径、大小和修改时间标识；索引和参考资源清单另有 SHA256 校验值。
+这不等于对整个 BAM 计算校验值。
+
+### 可选输出
 
 ```bash
-"$MP" call --bam sample.bam --assets reference_assets --out result_depth5_100 \
-  --min-depth 5 --max-depth 100
+# Preserve stage tables, bootstrap replicates and intermediate site data.
+./mapploid call --bam sample.bam --assets reference_assets --out detailed --keep-details
 
-# 显示全部参数及默认值
-"$MP" call --help
+# Also export the three-row evidence figure in PDF and 300-dpi PNG.
+./mapploid call --bam sample.bam --assets reference_assets --out exported --export-figures
 ```
 
-频率以两个主要等位基因的合计计数为分母，两个频率均须位于指定区间；因此应满足 `0 ≤ allele-min < 0.5 < allele-max ≤ 1`。第三种碱基占全部有效计数的比例达到 `allele-min` 时，位点仍按多等位过滤。频率、纯度和支持 reads 数同时传递给位点筛选与模型；支持 reads 数也用于似然归一化、重采样和拟合形状检查。
+默认精简模式在运行中保留阶段检查点，只有最终输出写入并通过校验后才清理阶段目录。
+中断或失败的任务保留检查点；正常完成但为 UNCERTAIN 的分析也执行精简清理。
+`--keep-details` 可保留这些目录。
 
-深度是质量过滤后位点 A/C/G/T 的总计数，包含少量第三、第四种碱基，不是样本平均测序深度。上下限均包含边界；仅指定一侧时，另一侧仍从当前区域的非零深度分布自动估计。若自动值与用户指定的一侧冲突，将自动值调整到用户指定的边界，避免上下限倒置。全部省略时保持原有自动规则。参数不合法时在读取输入之前报错。
+相同命令可用于续跑：已完成结果通过校验后直接复用，未完成阶段从保留的检查点继续。
+输入、参数、输出选项或软件版本改变时，需要新输出目录。同一输出目录只能由一个进程使用。
+清理样本结果不会删除参考资源。
 
-实际请求参数记录在 `details/request.json`，每一阶段的实际深度上下限记录在 `details/stage_*/counts/样本名.thresholds.tsv`。更改任一过滤参数需使用新的结果目录；参考资产可继续复用。本次增加过滤参数后，更新前生成的样本结果目录也应使用新目录重跑，以保存完整参数记录。
+## 批量分析
 
-程序自动选择高可比对区域，在基因组各处分散取样，从约 20 Mb 开始，证据不足再扩展至约 50、100 Mb；通过即停止。实际可用区域不足时使用全部合格区域，跳过重复阶段；不会为了补足面积而降低可比对性要求。面积可因保留完整区域片段而略超目标。所有区域都在参考准备时确定，不按预期倍性挑选。
+`bams.txt` 每行一个 BAM 路径，空行和以 `#` 开头的行会被忽略。
+相对路径以列表文件所在目录为基准。样本必须使用同一参考，且 BAM 文件名不同。
+样本名可包含字母、数字、点、下划线和连字符。
 
-主要输出只有两个文件：
+```text
+batch_results/
+  result.tsv       Same six columns, plus relative result_file
+  report.html      Search/filter samples and open individual reports
+  samples/
+    sample_A/
+    sample_B/
+  details/
+    run.json
+    run.log
+```
 
-- `result.tsv`：倍性、判定状态、区域数量、位点数量、支持度及不确定原因。
-- `regions.bed`：最终分析区域；发生扩展时包含此前阶段的区域。
+总表在单样本六列基础上增加相对路径 `result_file`；总览支持搜索、筛选和打开单样本报告。
+每处理完一个样本即更新总览。运行失败记为 FAILED，其余样本继续；存在失败样本时退出码为 1。
+UNCERTAIN 表示分析已完成，并非运行失败。中断时退出码为 130。
+补齐缺失 BAM 后可重复执行相同批量命令以重试失败样本。
+报告中的倍性统计是预测结果数量，不是准确率。
 
-`details/` 保存阶段结果、模型、参数、日志和校验记录。同一输入重复执行会复用已完成工作；输入、版本或参数改变时应使用新输出目录。重复执行时检查输入身份与结果校验记录。一个输出目录同一时刻只允许一个运行进程。
+## 输入及过滤
 
-输出含义：`2x`、`3x`、`4x` 或 `UNCERTAIN`。`2x` 不能排除二体遗传型四倍体；不能仅凭结果推断同源或异源起源。支持度是重采样支持率，不是样本倍性的后验概率。当前默认要求至少三条有判别信息的参考染色体；少于三条、碎片化参考或局部区域分析尚未建立等价的证据规则，可能返回不确定。
+BAM 必须按坐标排序，并带 BAI 或 CSI 索引。参考序列名称和长度必须匹配。
+`--assets` 是 `prepare --out` 生成的目录，不是 FASTA 或 BED 文件。
 
-零覆盖、无合格区域、位点或支持不足属于 `UNCERTAIN`，程序正常退出。损坏输入、工具失败等为运行错误，退出码非零，详情位于日志。发生中断可重新执行原命令。
+参考准备默认值：`--kmer 150`、GenMap 允许 2 个错配、`--min-region-length 10000`、`--threads 8`。
+可重复指定 `--exclude-bed`；`--genmap-bedgraph` 可提供参数匹配的既有 GenMap 分数。
+扣除参考缺口及排除区域后保留严格分数为 1 的区域；短区域不会跨缺口拼接。
+准备参数改变时使用新资源目录。原始 FASTA 必须保持可访问。
 
-相对 0.9.0 的修改：
+本版本保留 manuscript v20 源代码的读长检查：最多检查 10,000 条主比对记录，
+若读长小于参考资源的 k-mer 长度，则报输入错误。
 
-- 增加 `prepare`、`call` 两个主命令，整合原有四步。
-- 支持较小或无合格区域的参考，以及无覆盖样本。
-- 信息染色体不足时不再跳过检查；全局与染色体的判别门槛分开保存。
-- 将每个等位最少支持 reads 数（默认两条）的条件统一用于似然、拟合形状检查和模拟。
-- 未收敛的拟合不参与有效投票；重采样支持仍以计划重复数为分母，并保存有效/未解决重复数。
-- 修正零深度位置统计，保留原有 read 质量过滤和区域选择方法。
+| call 选项 | 默认值 |
+|---|---|
+| --allele-min / --allele-max | 0.15 / 0.85 |
+| --min-depth / --max-depth | 自动，按分析阶段估计 |
+| --min-mapq / --min-baseq | 20 / 20 |
+| --min-allele-reads | 2 |
+| --pair-purity | 0.95 |
 
-本版沿用现有计数后端和固定 2x/3x/4x 模型，没有引入新降噪模型、物种训练或复杂缓存。依赖为原环境中的 Python、NumPy、SciPy、pysam、GenMap 和 SAMtools；准备资产保留指向原 FASTA 的链接，后续分析需保持该参考可访问。
+等位基因频率以计数最高的两个等位基因计数之和为分母，两者均需满足指定频率区间。
+位点深度使用质量过滤后的 A/C/G/T 总计数，不等于整个样本的测序深度。
+深度上下界均包含边界值。实际边界见报告及运行记录。
 
-标签修改与本次验证记录见 [LABEL_CHANGE.md](LABEL_CHANGE.md)。开发材料上的回归验证用于检查版本变化，不能替代独立物种或样本的泛化验证。
+## 判定及诊断规则
 
-开发测试：
+分析从约 20 Mb 开始；未满足三项判定要求时扩展至约 50 Mb 和 100 Mb。
+较小参考使用可用区域。主拟合要求至少 25,000 个 SNP，最多使用 100,000 个。
+超过上限时，按各染色体位点数比例分配配额并进行确定性抽样。
+
+三项判定失败分别对应 LOW_SITE_COUNT、LOW_DELTA_BIC、MODEL_NOT_CONVERGED，结果为 UNCERTAIN。
+NO_ELIGIBLE_REGIONS、NO_COVERAGE、NO_VALID_SITES 也产生 UNCERTAIN，且没有可用的模型拟合。
+运行错误产生 FAILED。
+
+优先诊断项：
+
+- LOW_BOOTSTRAP_SUPPORT：100 次计划区块 bootstrap 中的一致率低于 0.85；未得到明确结果的重复仍计入分母。
+- INSUFFICIENT_CHROMOSOME_EVIDENCE：有效参考序列少于 3 条。
+- CHROMOSOME_HETEROGENEITY：有效参考序列对全局候选的一致率低于 70%。
+  有效序列要求至少 200 个拟合 SNP、模型收敛且 BIC 有限、delta BIC 至少为 10。
+- POOR_THEORETICAL_FIT：JS 散度大于 0.05 或不是有限值。
+
+详细诊断还保留 TOO_FEW_BLOCKS（有位点的 5 Mb 区块少于 5 个）、RHO_AT_BOUNDARY、
+A_AT_BOUNDARY、A_AT_UPPER_BOUNDARY、MODEL_ASSUMPTION_SENSITIVE。这些均仅作为警告。
+
+## 兼容性与开发
+
+0.10.1、0.10.2、0.10.3 的参考资源仍可读取，样本输出需要新目录。
+0.10.4 更新展示方式，并移除自动生成的二倍体解释警告；似然、位点选择及三项判定门槛保持不变。
+详见 [版本说明](RELEASE_NOTES_0.10.4.zh-CN.md) 和 [验证记录](validation/README.zh-CN.md)。
 
 ```bash
-cd MapPloid
-PYTHONPATH=src python -m unittest discover -s tests -v
-python scripts/validate_synthetic.py
+PYTHONPATH=src python -B -m unittest discover -s tests -v
 ```
-
-Python 模块仍可供开发调用；原分步 CLI 保存在 `src/mapploid/legacy_cli.py`，普通用户使用上述两个主命令即可。
-
-## 开源许可与运行环境
-
-MIT 许可证，见 [LICENSE](LICENSE)。运行依赖及安装见 [README.md](README.md)；可用性信息见 [docs/availability.md](docs/availability.md)。

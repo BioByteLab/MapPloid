@@ -1,0 +1,125 @@
+test_observed_zero_acgt_and_uncovered_positions_are_both_counted (test_bam_counts.BamCountIntegrationTests.test_observed_zero_acgt_and_uncovered_positions_are_both_counted) ... [MapPloid] running samtools mpileup for sample.bam
+[MapPloid] sample: retained 0 biallelic sites (1 <= depth <= 1)
+ok
+test_small_bam_end_to_end (test_bam_counts.BamCountIntegrationTests.test_small_bam_end_to_end) ... [MapPloid] running samtools mpileup for sample.bam
+[MapPloid] synthetic: retained 1 biallelic sites (4 <= depth <= 100)
+ok
+test_candidate_classification (test_bam_counts.BamCountUnitTests.test_candidate_classification) ... ok
+test_minimum_allele_reads_is_applied_after_frequency_filter (test_bam_counts.BamCountUnitTests.test_minimum_allele_reads_is_applied_after_frequency_filter) ... ok
+test_minimum_allele_reads_must_be_positive (test_bam_counts.BamCountUnitTests.test_minimum_allele_reads_must_be_positive) ... ok
+test_parse_mpileup_bases (test_bam_counts.BamCountUnitTests.test_parse_mpileup_bases) ... ok
+test_weighted_quantile_and_depth_limits (test_bam_counts.BamCountUnitTests.test_weighted_quantile_and_depth_limits) ... ok
+test_ambiguous_lists_fail_before_output_creation (test_batch.BamListTests.test_ambiguous_lists_fail_before_output_creation) ... ok
+test_cli_rejects_two_input_types_and_sample_name_for_batch (test_batch.BamListTests.test_cli_rejects_two_input_types_and_sample_name_for_batch) ... ok
+test_invalid_batch_filters_fail_before_opening_list (test_batch.BamListTests.test_invalid_batch_filters_fail_before_opening_list) ... ok
+test_relative_paths_spaces_comments_and_bom (test_batch.BamListTests.test_relative_paths_spaces_comments_and_bom) ... ok
+test_batch_cli_continues_after_failure_and_retries_without_recomputing_success (test_batch.BatchIntegrationTests.test_batch_cli_continues_after_failure_and_retries_without_recomputing_success) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpsxs0di3o/assets; use --assets /tmp/tmpsxs0di3o/assets for call
+ok
+test_interruption_preserves_completed_sample_and_resumes (test_batch.BatchIntegrationTests.test_interruption_preserves_completed_sample_and_resumes) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpqaslbckf/assets; use --assets /tmp/tmpqaslbckf/assets for call
+ok
+test_old_reference_assets_work_but_changed_batch_settings_are_rejected (test_batch.BatchIntegrationTests.test_old_reference_assets_work_but_changed_batch_settings_are_rejected) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpvgg158u8/assets; use --assets /tmp/tmpvgg158u8/assets for call
+ok
+test_real_covered_bam_and_empty_bam_produce_called_and_uncertain_rows (test_batch.BatchIntegrationTests.test_real_covered_bam_and_empty_bam_produce_called_and_uncertain_rows) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmplv55h5g9/assets; use --assets /tmp/tmplv55h5g9/assets for call
+[MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmplv55h5g9/three-assets; use --assets /tmp/tmplv55h5g9/three-assets for call
+ok
+test_all_eight_cli_options_affect_real_bam_and_model_and_protect_resume (test_cli_filters.FilterCliIntegrationTests.test_all_eight_cli_options_affect_real_bam_and_model_and_protect_resume) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpye9nhgc9/assets; use --assets /tmp/tmpye9nhgc9/assets for call
+[MapPloid] sample: analyzing 0.002 Mb
+[MapPloid] sample: UNCERTAIN; report: /tmp/tmpye9nhgc9/out/report.html
+ok
+test_custom_mac_likelihood_and_shape_match_independent_probabilities (test_cli_filters.FilterModelTests.test_custom_mac_likelihood_and_shape_match_independent_probabilities) ... ok
+test_custom_mac_reaches_global_bootstrap_chromosome_and_sensitivity_fits (test_cli_filters.FilterModelTests.test_custom_mac_reaches_global_bootstrap_chromosome_and_sensitivity_fits) ... ok
+test_invalid_cli_filters_fail_before_opening_inputs_or_creating_output (test_cli_filters.FilterModelTests.test_invalid_cli_filters_fail_before_opening_inputs_or_creating_output) ... ok
+test_purity_uses_exact_counts_and_configured_threshold (test_cli_filters.FilterModelTests.test_purity_uses_exact_counts_and_configured_threshold) ... ok
+test_single_depth_bound_keeps_user_value_and_ordered_limits (test_cli_filters.FilterModelTests.test_single_depth_bound_keeps_user_value_and_ordered_limits) ... ok
+test_merge_subtract_and_intersect (test_intervals.IntervalTests.test_merge_subtract_and_intersect) ... ok
+test_nested_balanced_panels_and_minimum_run (test_panel.PanelTests.test_nested_balanced_panels_and_minimum_run) ... ok
+test_asset_content_change_is_rejected (test_pipeline.PipelineTests.test_asset_content_change_is_rejected) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmp0nqm7awc/assets; use --assets /tmp/tmp0nqm7awc/assets for call
+ok
+test_changed_input_cannot_reuse_previous_call (test_pipeline.PipelineTests.test_changed_input_cannot_reuse_previous_call) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmp1egowwfb/assets; use --assets /tmp/tmp1egowwfb/assets for call
+[MapPloid] sample: analyzing 0.002 Mb
+[MapPloid] sample: UNCERTAIN; report: /tmp/tmp1egowwfb/out/report.html
+ok
+test_expansion_early_stop_and_resume_skip_completed_stage (test_pipeline.PipelineTests.test_expansion_early_stop_and_resume_skip_completed_stage) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpd7gt8dah/assets; use --assets /tmp/tmpd7gt8dah/assets for call
+[MapPloid] sample: analyzing 0.000 Mb
+[MapPloid] sample: analyzing 0.001 Mb
+[MapPloid] sample: analyzing 0.000 Mb
+[MapPloid] sample: analyzing 0.001 Mb
+[MapPloid] sample: 3x; report: /tmp/tmpd7gt8dah/out/report.html
+ok
+test_no_mappable_regions_is_valid_uncertain_result (test_pipeline.PipelineTests.test_no_mappable_regions_is_valid_uncertain_result) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpgors7sho/assets; use --assets /tmp/tmpgors7sho/assets for call
+[MapPloid] sample: analyzing 0.000 Mb
+[MapPloid] sample: UNCERTAIN; report: /tmp/tmpgors7sho/out/report.html
+ok
+test_public_call_preserves_v20_short_read_validation (test_pipeline.PipelineTests.test_public_call_preserves_v20_short_read_validation) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpgrbuuzjo/assets; use --assets /tmp/tmpgrbuuzjo/assets for call
+[MapPloid] ERROR: BAM contains reads of length 20, shorter than asset k-mer length 50; prepare assets using a k-mer length compatible with the trimmed reads
+ok
+test_small_reference_reuses_assets_without_touching_source_fasta_index (test_pipeline.PipelineTests.test_small_reference_reuses_assets_without_touching_source_fasta_index) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmp5pi_g7kv/assets; use --assets /tmp/tmp5pi_g7kv/assets for call
+ok
+test_tool_failure_is_failed_not_biological_uncertainty (test_pipeline.PipelineTests.test_tool_failure_is_failed_not_biological_uncertainty) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpw0j1l753/assets; use --assets /tmp/tmpw0j1l753/assets for call
+[MapPloid] sample: analyzing 0.002 Mb
+ok
+test_zero_coverage_is_uncertain_and_completed_run_is_reused (test_pipeline.PipelineTests.test_zero_coverage_is_uncertain_and_completed_run_is_reused) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpzfrli6mz/assets; use --assets /tmp/tmpzfrli6mz/assets for call
+[MapPloid] sample: analyzing 0.002 Mb
+[MapPloid] sample: UNCERTAIN; report: /tmp/tmpzfrli6mz/out/report.html
+ok
+test_2x_has_only_data_diagnostic_warnings (test_ploidy_model.PloidyModelIntegrationTests.test_2x_has_only_data_diagnostic_warnings) ... ok
+test_parameter_boundary_is_warning_only (test_ploidy_model.PloidyModelIntegrationTests.test_parameter_boundary_is_warning_only) ... ok
+test_poor_theoretical_fit_is_warning_only (test_ploidy_model.PloidyModelIntegrationTests.test_poor_theoretical_fit_is_warning_only) ... ok
+test_simulator_and_uncertain_bootstrap_workflow (test_ploidy_model.PloidyModelIntegrationTests.test_simulator_and_uncertain_bootstrap_workflow) ... ok
+test_constrained_m4p_cannot_collapse_onto_pure_half_peak (test_ploidy_model.PloidyModelUnitTests.test_constrained_m4p_cannot_collapse_onto_pure_half_peak) ... ok
+test_exact_theoretical_peaks_select_correct_ploidy (test_ploidy_model.PloidyModelUnitTests.test_exact_theoretical_peaks_select_correct_ploidy) ... ok
+test_m4p_accepts_multiple_biological_outer_peak_weights (test_ploidy_model.PloidyModelUnitTests.test_m4p_accepts_multiple_biological_outer_peak_weights) ... ok
+test_proportional_quotas_have_exact_total (test_ploidy_model.PloidyModelUnitTests.test_proportional_quotas_have_exact_total) ... ok
+test_truncated_component_is_normalized (test_ploidy_model.PloidyModelUnitTests.test_truncated_component_is_normalized) ... ok
+test_cli_defaults_and_complete_prepare_flow (test_prepare_options.PrepareOptionsTests.test_cli_defaults_and_complete_prepare_flow) ... ok
+test_invalid_parameters_fail_before_opening_reference (test_prepare_options.PrepareOptionsTests.test_invalid_parameters_fail_before_opening_reference) ... ok
+test_legacy_assets_keep_their_original_threshold (test_prepare_options.PrepareOptionsTests.test_legacy_assets_keep_their_original_threshold) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmp3l9ybq8u/assets; use --assets /tmp/tmp3l9ybq8u/assets for call
+ok
+test_threshold_applies_after_exclusions_split_a_long_run (test_prepare_options.PrepareOptionsTests.test_threshold_applies_after_exclusions_split_a_long_run) ... [MapPloid] scanning FASTA gaps and contig lengths
+[MapPloid] converting GenMap bedGraph: /tmp/tmpq6fjg14x/scores.bedgraph
+[MapPloid] reference mask completed: /tmp/tmpq6fjg14x/mask/mappability_mask.bed
+ok
+test_threshold_with_no_qualifying_runs_produces_empty_valid_assets (test_prepare_options.PrepareOptionsTests.test_threshold_with_no_qualifying_runs_produces_empty_valid_assets) ... [MapPloid] preparing high-mappability reference regions
+[MapPloid] Reference directory ready: /tmp/tmpsinzz2xp/assets; use --assets /tmp/tmpsinzz2xp/assets for call
+ok
+test_reference_workflow_with_existing_bedgraph (test_reference_mask.ReferenceMaskTests.test_reference_workflow_with_existing_bedgraph) ... [MapPloid] scanning FASTA gaps and contig lengths
+[MapPloid] converting GenMap bedGraph: /tmp/tmp63xz8ywz/reference.genmap.bedgraph
+[MapPloid] reference mask completed: /tmp/tmp63xz8ywz/output/mappability_mask.bed
+ok
+test_reuses_genmap_output_prefix_from_interrupted_run (test_reference_mask.ReferenceMaskTests.test_reuses_genmap_output_prefix_from_interrupted_run) ... [MapPloid] scanning FASTA gaps and contig lengths
+[MapPloid] reusing completed GenMap bedGraph: /tmp/tmp171_jvpz/output/intermediate/genmap_k10_e1.bedgraph
+[MapPloid] converting GenMap bedGraph: /tmp/tmp171_jvpz/output/intermediate/genmap_k10_e1.bedgraph
+[MapPloid] reference mask completed: /tmp/tmp171_jvpz/output/mappability_mask.bed
+ok
+test_legacy_cli_default_and_explicit_limits (test_site_limits.SiteLimitTests.test_legacy_cli_default_and_explicit_limits) ... ok
+test_lower_boundary_and_upper_sampling_cap (test_site_limits.SiteLimitTests.test_lower_boundary_and_upper_sampling_cap) ... ok
+test_boundary_values_pass_remaining_gates (test_v0103_call_policy.CallPolicyTests.test_boundary_values_pass_remaining_gates) ... ok
+test_four_diagnostic_failures_are_warning_only_individually_and_together (test_v0103_call_policy.CallPolicyTests.test_four_diagnostic_failures_are_warning_only_individually_and_together) ... ok
+test_remaining_three_gates_still_make_calls_uncertain (test_v0103_call_policy.CallPolicyTests.test_remaining_three_gates_still_make_calls_uncertain) ... ok
+test_v0102_model_outputs_cannot_be_reused (test_v0103_call_policy.CallPolicyTests.test_v0102_model_outputs_cannot_be_reused) ... ok
+test_chromosome_diagnostics_record_shortage_and_conflict (test_v010_model.ModelCorrections.test_chromosome_diagnostics_record_shortage_and_conflict) ... ok
+test_duplicate_counts_and_filter_contract_mismatch_are_rejected (test_v010_model.ModelCorrections.test_duplicate_counts_and_filter_contract_mismatch_are_rejected) ... ok
+test_failed_models_do_not_vote_in_bootstrap_or_chromosomes (test_v010_model.ModelCorrections.test_failed_models_do_not_vote_in_bootstrap_or_chromosomes) ... ok
+test_low_depth_mac_likelihood_matches_independent_enumeration (test_v010_model.ModelCorrections.test_low_depth_mac_likelihood_matches_independent_enumeration) ... ok
+test_low_depth_simulator_uses_the_same_support (test_v010_model.ModelCorrections.test_low_depth_simulator_uses_the_same_support) ... ok
+
+----------------------------------------------------------------------
+Ran 58 tests in 61.340s
+
+OK
+[MapPloid] completed result already exists; reusing /tmp/tmp171_jvpz/output

@@ -19,3 +19,11 @@ validation/synthetic_e2e/
 *.cram
 *.crai
 *.sra
+
+# Generated examples and local validation artifacts
+examples/quickstart/output/
+validation/demo/
+validation/demo_schema3/
+validation/quickstart_pdf_png/
+.github_key*
+github_key.txt

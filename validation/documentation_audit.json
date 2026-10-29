@@ -1,0 +1,103 @@
+{
+  "checked_at": "2026-10-29T08:17:34.587101+00:00",
+  "passed": true,
+  "documentation_pairs": [
+    [
+      "README.md",
+      "README.zh-CN.md"
+    ],
+    [
+      "RELEASE_NOTES_0.10.4.md",
+      "RELEASE_NOTES_0.10.4.zh-CN.md"
+    ],
+    [
+      "docs/CLI.md",
+      "docs/CLI.zh-CN.md"
+    ],
+    [
+      "docs/REPORT_GUIDE.md",
+      "docs/REPORT_GUIDE.zh-CN.md"
+    ],
+    [
+      "examples/quickstart/README.md",
+      "examples/quickstart/README.zh-CN.md"
+    ],
+    [
+      "validation/README.md",
+      "validation/README.zh-CN.md"
+    ]
+  ],
+  "local_links_checked": 76,
+  "code_blocks_checked": 40,
+  "english_code_files_checked": 28,
+  "public_options_documented": [
+    "--allele-max",
+    "--allele-min",
+    "--assets",
+    "--bam",
+    "--bam-list",
+    "--exclude-bed",
+    "--export-figures",
+    "--genmap-bedgraph",
+    "--help",
+    "--keep-details",
+    "--kmer",
+    "--max-depth",
+    "--min-allele-reads",
+    "--min-baseq",
+    "--min-depth",
+    "--min-mapq",
+    "--min-region-length",
+    "--out",
+    "--pair-purity",
+    "--reference",
+    "--sample",
+    "--threads",
+    "--version",
+    "-h"
+  ],
+  "diagnostic_codes_documented": [
+    "A_AT_BOUNDARY",
+    "A_AT_UPPER_BOUNDARY",
+    "CHROMOSOME_HETEROGENEITY",
+    "INSUFFICIENT_CHROMOSOME_EVIDENCE",
+    "LOW_BOOTSTRAP_SUPPORT",
+    "LOW_DELTA_BIC",
+    "LOW_SITE_COUNT",
+    "MODEL_ASSUMPTION_SENSITIVE",
+    "MODEL_NOT_CONVERGED",
+    "NO_COVERAGE",
+    "NO_ELIGIBLE_REGIONS",
+    "NO_VALID_SITES",
+    "POOR_THEORETICAL_FIT",
+    "RHO_AT_BOUNDARY",
+    "TOO_FEW_BLOCKS"
+  ],
+  "unchanged_source_and_test_files": 24,
+  "quickstart_reuse": {
+    "passed": true,
+    "status": "CALLED",
+    "ploidy": "3x",
+    "fitting_snps": 35255,
+    "seconds": 0.7,
+    "tutorial_paths_printed": [
+      "English",
+      "Simplified Chinese"
+    ]
+  },
+  "help_and_version_commands_passed": 5,
+  "checks": [
+    "paired documentation",
+    "language navigation",
+    "identical English code blocks",
+    "local link targets",
+    "English code and comments",
+    "Python syntax",
+    "public CLI option coverage",
+    "diagnostic code coverage",
+    "unchanged analysis source and tests",
+    "quickstart reuse and tutorial links",
+    "help and version commands"
+  ],
+  "errors": []
+}

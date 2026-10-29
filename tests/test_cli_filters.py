@@ -121,7 +121,7 @@ class FilterCliIntegrationTests(unittest.TestCase):
             scores.write_text('chr1\t0\t1951\t1\n')
             assets = root/'assets'
             pipeline.prepare(pipeline.PrepareConfig(reference, assets, 50, 1,
-                                                    genmap_bedgraph=scores))
+                                                    genmap_bedgraph=scores, min_region_length=300))
             bam = root/'sample.bam'
             header = {'HD': {'VN': '1.6', 'SO': 'coordinate'},
                       'SQ': [{'SN': 'chr1', 'LN': 2000}]}
@@ -147,7 +147,7 @@ class FilterCliIntegrationTests(unittest.TestCase):
             filters = dict(allele_min=.10, allele_max=.90, min_depth=4, max_depth=40,
                            min_mapq=10, min_baseq=10, min_allele_reads=1, pair_purity=.90)
             output = root/'out'
-            args = ['call', '--bam', str(bam), '--assets', str(assets), '--out', str(output)]
+            args = ['call', '--bam', str(bam), '--assets', str(assets), '--out', str(output), '--keep-details']
             for key, value in filters.items():
                 args.extend(['--'+key.replace('_', '-'), str(value)])
             with redirect_stdout(StringIO()):
@@ -157,6 +157,12 @@ class FilterCliIntegrationTests(unittest.TestCase):
                 rows = list(csv.DictReader(handle, delimiter='\t'))
             self.assertEqual([int(row['position']) for row in rows], [126, 326, 526, 726, 926])
             model_config = json.loads((stage/'model/run_config.json').read_text())
+            self.assertEqual(model_config['min_sites'], 25_000)
+            self.assertEqual(model_config['max_sites'], 100_000)
+            request_path = output/'details/run.json'
+            run_record = json.loads(request_path.read_text())
+            request = run_record['request']
+            self.assertEqual(request['model_site_limits'], dict(min_sites=25_000, max_sites=100_000))
             count_config = json.loads((stage/'counts/run_config.json').read_text())
             for name, value in filters.items():
                 self.assertEqual(count_config[name], value)
@@ -170,12 +176,21 @@ class FilterCliIntegrationTests(unittest.TestCase):
             with redirect_stdout(StringIO()):
                 self.assertEqual(main(args), 0)
             self.assertEqual(result.stat().st_mtime_ns, stamp)
-            config = pipeline.CallConfig(bam, assets, output, **filters)
+            config = pipeline.CallConfig(bam, assets, output, keep_details=True, **filters)
             changes = dict(allele_min=.12, allele_max=.88, min_depth=5, max_depth=50,
                            min_mapq=11, min_baseq=11, min_allele_reads=2, pair_purity=.91)
             for key, value in changes.items():
                 with self.subTest(changed=key), self.assertRaisesRegex(ValueError, 'settings changed'):
                     pipeline.call(replace(config, **{key:value}))
+            # A completed run made with earlier limits must not be silently reused.
+            request['model_site_limits'] = dict(min_sites=5_000, max_sites=50_000)
+            request_path.write_text(json.dumps(run_record))
+            with self.assertRaisesRegex(ValueError, 'settings changed'):
+                pipeline.call(config)
+            request.pop('model_site_limits')
+            request_path.write_text(json.dumps(run_record))
+            with self.assertRaisesRegex(ValueError, 'settings changed'):
+                pipeline.call(config)
 
 
 if __name__ == '__main__':

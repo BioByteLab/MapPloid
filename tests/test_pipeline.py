@@ -30,7 +30,7 @@ class PipelineTests(unittest.TestCase):
         self.temp.cleanup()
 
     def prepare(self):
-        return p.prepare(p.PrepareConfig(self.ref,self.assets,50,1,genmap_bedgraph=self.bg))
+        return p.prepare(p.PrepareConfig(self.ref,self.assets,50,1,genmap_bedgraph=self.bg,min_region_length=300))
 
     def result(self, output):
         with output.open() as h:
@@ -52,7 +52,7 @@ class PipelineTests(unittest.TestCase):
         result=p.call(config)
         row=self.result(result)
         self.assertEqual(row['status'],'UNCERTAIN')
-        self.assertEqual(row['reason'],'NO_COVERAGE')
+        self.assertEqual(p.read_json(result.parent/'details/run.json')['result']['reason'],'NO_COVERAGE')
         modified=result.stat().st_mtime_ns
         self.assertEqual(p.call(config),result)
         self.assertEqual(modified,result.stat().st_mtime_ns)
@@ -64,7 +64,7 @@ class PipelineTests(unittest.TestCase):
         self.bg.write_text('chr1\t0\t1951\t0.5\n')
         self.prepare()
         result=p.call(p.CallConfig(self.bam,self.assets,self.root/'out'))
-        self.assertEqual(self.result(result)['reason'],'NO_ELIGIBLE_REGIONS')
+        self.assertEqual(p.read_json(result.parent/'details/run.json')['result']['reason'],'NO_ELIGIBLE_REGIONS')
         self.assertEqual((self.root/'out/regions.bed').read_text(),'')
 
     def test_asset_content_change_is_rejected(self):
@@ -74,26 +74,36 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'modified'):
             p.call(p.CallConfig(self.bam,self.assets,self.root/'out'))
 
-    def test_reads_shorter_than_asset_k_are_rejected(self):
+    def test_public_call_preserves_v20_short_read_validation(self):
+        from mapploid.cli import main
         self.prepare()
+        asset_stamp=(self.assets/'assets.json').stat().st_mtime_ns
         header={'HD':{'VN':'1.6','SO':'coordinate'},'SQ':[{'SN':'chr1','LN':2000}]}
         with pysam.AlignmentFile(str(self.bam),'wb',header=header) as handle:
-            read=pysam.AlignedSegment()
-            read.query_name='short';read.query_sequence='A'*20
-            read.flag=0;read.reference_id=0;read.reference_start=0
-            read.mapping_quality=60;read.cigar=[(0,20)]
-            read.query_qualities=pysam.qualitystring_to_array('I'*20)
-            handle.write(read)
+            for length in (20,75):
+                read=pysam.AlignedSegment()
+                read.query_name=f'read_{length}';read.query_sequence='A'*length
+                read.flag=0;read.reference_id=0;read.reference_start=100
+                read.mapping_quality=60;read.cigar=[(0,length)]
+                read.query_qualities=pysam.qualitystring_to_array('I'*length)
+                handle.write(read)
         pysam.index(str(self.bam))
-        with self.assertRaisesRegex(ValueError,'shorter than asset read length'):
-            p.call(p.CallConfig(self.bam,self.assets,self.root/'out'))
+        output=self.root/'out'
+        status=main(['call','--bam',str(self.bam),'--assets',str(self.assets),
+                     '--out',str(output),'--sample','short_mixed'])
+        # The manuscript v20 source retains its existing k-mer/read-length check.
+        self.assertEqual(status,1)
+        self.assertEqual(self.result(output/'result.tsv')['status'],'FAILED')
+        self.assertIn('shorter',p.read_json(output/'details/run.json')['result']['reason'])
+        self.assertEqual((self.assets/'assets.json').stat().st_mtime_ns,asset_stamp)
 
     def test_tool_failure_is_failed_not_biological_uncertainty(self):
         self.prepare()
         with self.assertRaisesRegex(RuntimeError,'samtools'):
             p.call(p.CallConfig(self.bam,self.assets,self.root/'out',samtools_executable='no-such-samtools'))
-        self.assertEqual(p.read_json(self.root/'out/details/status.json')['state'],'FAILED')
-        self.assertFalse((self.root/'out/result.tsv').exists())
+        self.assertEqual(p.read_json(self.root/'out/details/run.json')['state'],'FAILED')
+        self.assertEqual(self.result(self.root/'out/result.tsv')['status'], 'FAILED')
+        self.assertTrue((self.root/'out/report.html').is_file())
 
     def test_changed_input_cannot_reuse_previous_call(self):
         self.prepare()
@@ -121,7 +131,7 @@ class PipelineTests(unittest.TestCase):
             counts_calls.append(config.output_dir.parent.name)
             config.output_dir.mkdir(parents=True,exist_ok=True)
             path=config.output_dir/'run_manifest.json'
-            p.atomic_json(path,dict(filtering=dict(retained_sites=6000),extraction=dict(acgt_observations=10000)))
+            p.atomic_json(path,dict(filtering=dict(retained_sites=30000),extraction=dict(acgt_observations=100000)))
             data=config.output_dir/'counts.tsv'
             data.write_text('fixture')
             return dict(manifest=path,biallelic_sites=data)
@@ -130,9 +140,10 @@ class PipelineTests(unittest.TestCase):
             if len(model_calls)==2:
                 raise RuntimeError('interrupted fixture')
             config.output_dir.mkdir(parents=True,exist_ok=True)
-            row=p.empty_evidence('LOW_BOOTSTRAP_SUPPORT')
+            row=p.empty_evidence('LOW_DELTA_BIC')
+            row['warnings']='LOW_BOOTSTRAP_SUPPORT;INSUFFICIENT_CHROMOSOME_EVIDENCE;POOR_THEORETICAL_FIT;CHROMOSOME_HETEROGENEITY'
             if config.output_dir.parent.name=='stage_2':
-                row.update(predicted_ploidy='3x',uncertainty_reasons='NONE',selected_sites=6000)
+                row.update(predicted_ploidy='3x',uncertainty_reasons='NONE',selected_sites=30000)
             path=config.output_dir/'run_manifest.json'
             p.atomic_json(path,dict(result=row))
             return dict(manifest=path)
@@ -144,6 +155,9 @@ class PipelineTests(unittest.TestCase):
             result=p.call(config)
         self.assertEqual(counts_calls,['stage_1','stage_2','stage_2'])
         self.assertEqual(self.result(result)['predicted_ploidy'],'3x')
+        self.assertEqual(self.result(result)['status'],'CALLED')
+        self.assertIn('LOW_BOOTSTRAP_SUPPORT',p.read_json(result.parent/'details/run.json')['result']['warnings'])
+        self.assertEqual(p.read_json(result.parent/'details/run.json')['result']['reason'],'NONE')
         self.assertEqual((self.root/'out/regions.bed').read_text(),'chr1\t50\t1000\n')
         self.assertFalse((self.root/'out/details/stage_3').exists())
 

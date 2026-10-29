@@ -1,0 +1,263 @@
+[
+  {
+    "path": "mapploid-icon-1024.png",
+    "format": "PNG",
+    "width": 1024,
+    "height": 1024,
+    "pixels": 1048576,
+    "color_mode": "RGBA",
+    "bytes": 211119,
+    "sha256": "5bc759d1a091dcee7e58b3703dcd0a03cc968c964dd8ce7894f58b2dbfd7431f"
+  },
+  {
+    "path": "mapploid-icon-256.png",
+    "format": "PNG",
+    "width": 256,
+    "height": 256,
+    "pixels": 65536,
+    "color_mode": "RGBA",
+    "bytes": 30385,
+    "sha256": "fb3657569c8b067e5a5203fc56eb22ac0b48fe11d32e717a5e9c76660e779fdd"
+  },
+  {
+    "path": "mapploid-icon-32.png",
+    "format": "PNG",
+    "width": 32,
+    "height": 32,
+    "pixels": 1024,
+    "color_mode": "RGBA",
+    "bytes": 3003,
+    "sha256": "49e92148ab856be560e8558b9d5a4155acba8189f55771bd4f6d43c21263400d"
+  },
+  {
+    "path": "mapploid-icon-512.png",
+    "format": "PNG",
+    "width": 512,
+    "height": 512,
+    "pixels": 262144,
+    "color_mode": "RGBA",
+    "bytes": 22603,
+    "sha256": "409090add50aba0ef6aeb01b60098c5b996f60b0a21da316a05358699b30ee8d"
+  },
+  {
+    "path": "mapploid-icon-64.png",
+    "format": "PNG",
+    "width": 64,
+    "height": 64,
+    "pixels": 4096,
+    "color_mode": "RGBA",
+    "bytes": 6943,
+    "sha256": "695107eb3e3acca8154747a2fab85c70a6d4bef3814386ba6aa0615e094bc7b0"
+  },
+  {
+    "path": "mapploid-icon-black-1024.png",
+    "format": "PNG",
+    "width": 1024,
+    "height": 1024,
+    "pixels": 1048576,
+    "color_mode": "LA",
+    "bytes": 29705,
+    "sha256": "64eeb580a5f8a5c5c45b095ab4f03dd6d82ae91fe20bcdcbc9d58947f50c810a"
+  },
+  {
+    "path": "mapploid-icon-black-256.png",
+    "format": "PNG",
+    "width": 256,
+    "height": 256,
+    "pixels": 65536,
+    "color_mode": "LA",
+    "bytes": 4721,
+    "sha256": "85d7036fe7c4ef24fd63fcfdd613652f328f6423f6db4c11131ff31b3aec6ae9"
+  },
+  {
+    "path": "mapploid-icon-black-32.png",
+    "format": "PNG",
+    "width": 32,
+    "height": 32,
+    "pixels": 1024,
+    "color_mode": "LA",
+    "bytes": 724,
+    "sha256": "19e450ff4ff0288f143d2215cb98b939bce45c9b38bdac5ac393d333711c891d"
+  },
+  {
+    "path": "mapploid-icon-black-512.png",
+    "format": "PNG",
+    "width": 512,
+    "height": 512,
+    "pixels": 262144,
+    "color_mode": "LA",
+    "bytes": 7722,
+    "sha256": "336611d20c5a54636ba0e9e6d1483d183ab00c3cbaa3bbb4ae6410d753f05f6d"
+  },
+  {
+    "path": "mapploid-icon-black-64.png",
+    "format": "PNG",
+    "width": 64,
+    "height": 64,
+    "pixels": 4096,
+    "color_mode": "LA",
+    "bytes": 1283,
+    "sha256": "2040e957e589b1c0f53abed71871a5ebb17e545300fd11701a129939af45879d"
+  },
+  {
+    "path": "mapploid-icon-transparent-1024.png",
+    "format": "PNG",
+    "width": 1024,
+    "height": 1024,
+    "pixels": 1048576,
+    "color_mode": "RGBA",
+    "bytes": 89074,
+    "sha256": "29e9a13a5e03306c5d5de8bab7d9e8f47479213207cb821b4b18c1adda48a3e6"
+  },
+  {
+    "path": "mapploid-icon-transparent-256.png",
+    "format": "PNG",
+    "width": 256,
+    "height": 256,
+    "pixels": 65536,
+    "color_mode": "RGBA",
+    "bytes": 13518,
+    "sha256": "d59c1f9955deb58e0fb17e300e84e9bf4353a494058a250d71ffddcc2c1954da"
+  },
+  {
+    "path": "mapploid-icon-transparent-32.png",
+    "format": "PNG",
+    "width": 32,
+    "height": 32,
+    "pixels": 1024,
+    "color_mode": "RGBA",
+    "bytes": 1621,
+    "sha256": "9bfeaf66897ec2cf1e1274ca4e562fb309c4d212005ebf2affad9922f471b9ba"
+  },
+  {
+    "path": "mapploid-icon-transparent-512.png",
+    "format": "PNG",
+    "width": 512,
+    "height": 512,
+    "pixels": 262144,
+    "color_mode": "RGBA",
+    "bytes": 16981,
+    "sha256": "26f1660dac1204ff0f605b61e8713c9a73c38f150ceaef1ca18d9ae0a9ce3eb9"
+  },
+  {
+    "path": "mapploid-icon-transparent-64.png",
+    "format": "PNG",
+    "width": 64,
+    "height": 64,
+    "pixels": 4096,
+    "color_mode": "RGBA",
+    "bytes": 3283,
+    "sha256": "32137aa7978cdad7a8ccd787b25e1ac45a3887a540d85405c84e58dc6c2eb4ad"
+  },
+  {
+    "path": "mapploid-icon-white-1024.png",
+    "format": "PNG",
+    "width": 1024,
+    "height": 1024,
+    "pixels": 1048576,
+    "color_mode": "LA",
+    "bytes": 30838,
+    "sha256": "54b52e59d53e4f7e9f69f7e8c383aef43ba047f9233e4948da81811ea96b3009"
+  },
+  {
+    "path": "mapploid-icon-white-256.png",
+    "format": "PNG",
+    "width": 256,
+    "height": 256,
+    "pixels": 65536,
+    "color_mode": "LA",
+    "bytes": 5245,
+    "sha256": "cfdf7f4724323e5409b5f718f00e8c522eb44beaba2979237d2887bdd35ccc1d"
+  },
+  {
+    "path": "mapploid-icon-white-32.png",
+    "format": "PNG",
+    "width": 32,
+    "height": 32,
+    "pixels": 1024,
+    "color_mode": "LA",
+    "bytes": 775,
+    "sha256": "70e5affea9e87052cf5a2be86ee8275416b439e7fa6b6bca5ec0f5d01c838238"
+  },
+  {
+    "path": "mapploid-icon-white-512.png",
+    "format": "PNG",
+    "width": 512,
+    "height": 512,
+    "pixels": 262144,
+    "color_mode": "LA",
+    "bytes": 8508,
+    "sha256": "20dc8e0db7be5e35accf80b2b8aad460a72c1b6244c2ffc1172f359fd3b6651a"
+  },
+  {
+    "path": "mapploid-icon-white-64.png",
+    "format": "PNG",
+    "width": 64,
+    "height": 64,
+    "pixels": 4096,
+    "color_mode": "LA",
+    "bytes": 1383,
+    "sha256": "9a07d04c9d0fb8350b492e5aa722ac279696522b9bed5faa1ee7ba41952b2887"
+  },
+  {
+    "path": "mapploid-wordmark-black.png",
+    "format": "PNG",
+    "width": 1160,
+    "height": 400,
+    "pixels": 464000,
+    "color_mode": "LA",
+    "bytes": 13039,
+    "sha256": "0f68f115c674773710a264bfc124ca6ab306adbb1e96cb8794815ed3c5dfc5b1"
+  },
+  {
+    "path": "mapploid-wordmark-transparent.png",
+    "format": "PNG",
+    "width": 1160,
+    "height": 400,
+    "pixels": 464000,
+    "color_mode": "RGBA",
+    "bytes": 29051,
+    "sha256": "91ad073f8d343401db86145c9832cdc3a60e0245101ca77be27ccfbf8a1f462d"
+  },
+  {
+    "path": "mapploid-wordmark-white.png",
+    "format": "PNG",
+    "width": 1160,
+    "height": 400,
+    "pixels": 464000,
+    "color_mode": "LA",
+    "bytes": 13840,
+    "sha256": "84d15abfb038ad5dcc01de856cae92dfaf85d964cfce6ffc16f3bdcb0606d860"
+  },
+  {
+    "path": "mapploid-wordmark.png",
+    "format": "PNG",
+    "width": 1160,
+    "height": 400,
+    "pixels": 464000,
+    "color_mode": "RGBA",
+    "bytes": 46216,
+    "sha256": "731fc9ae3ec5d18b15fbcd31dbc1a8db635e4c60848143f91ae0ca33f1ef4e53"
+  },
+  {
+    "path": "review/mapploid-backgrounds_visual_review_1200px.png",
+    "format": "PNG",
+    "width": 1200,
+    "height": 800,
+    "pixels": 960000,
+    "color_mode": "RGB",
+    "bytes": 65797,
+    "sha256": "9e8c213650bd5e856bb10a64b32814ee05469fc2d1937a3385bc5428d8fd78f7"
+  },
+  {
+    "path": "source/mapploid-concept-original.png",
+    "format": "PNG",
+    "width": 1254,
+    "height": 1254,
+    "pixels": 1572516,
+    "color_mode": "RGBA",
+    "bytes": 324775,
+    "sha256": "ca11ba4b44b1f3cd6115f3bc09afba04890f5c4ca9dbfdb72a27b91687d803d3",
+    "distribution": "Local archive only; not included in the public repository"
+  }
+]

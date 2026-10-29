@@ -1,16 +1,36 @@
-# Validation
+# MapPloid 0.10.4 validation
 
-The unit-test suite covers counting, intervals, reference masks, model behaviour, CLI filters and pipeline checkpoints. Tests requiring SAMtools may be skipped if it is unavailable; report skipped tests explicitly.
+**English** | [简体中文](README.zh-CN.md)
 
-The synthetic example creates six 1,500 bp artificial chromosomes and short pre-aligned BAMs at approximately 30 reads per site. Alleles are generated from prescribed dosage distributions. This is an integration fixture, not simulated real whole-genome resequencing and not a depth-boundary experiment.
+The public source was checked from a clean staging directory on 2026-10-29.
+Results are recorded in [unit tests](github_tests.log) and
+[fresh quickstart](github_quickstart.log). These are software checks, not
+validation of biological accuracy or universal sequencing-depth requirements.
 
-Run from a clean output directory:
+From the repository root, with the documented environment active:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
-python scripts/validate_synthetic.py
+python examples/quickstart/run.py
+python scripts/validate_output.py
 ```
 
-Expected labels are `2x`, `3x`, `4x` for the respective synthetic inputs. The script asserts these labels and writes `validation/synthetic_e2e/verification.json` on success. Generated files are excluded from Git.
+The suite covers model behavior, reference preparation, BAM counts, pipeline
+reuse, sample calls and batch handling. The quickstart uses a synthetic 3x BAM
+and supplied toy mappability scores; it checks `CALLED 3x` and exports PDF/PNG
+figures and an offline HTML report. It does not run GenMap.
 
-Release check on 2026-10-03: all 39 unit tests passed with zero skips. The synthetic end-to-end example passed for 2x, 3x and 4x using real GenMap 1.3.0 and SAMtools/HTSlib 1.24. Historical v0.10.0 experiments are not relabelled as v0.10.1 validation.
+The optional output validator includes an empty BAM and an intentionally missing
+BAM to check `UNCERTAIN`, `FAILED`, batch continuation and output reuse.
+Generated inputs and reports are created locally and excluded from Git.
+The old `scripts/validate_synthetic.py` entrypoint is superseded by the current
+quickstart and output validator; historical v0.10.1 checks are not new v0.10.4 results.
+
+Earlier local validation logs and audit records are retained in this directory
+for provenance; absolute paths in them refer to the original development runs.
+The GitHub preparation results above are the portable-source checks.
+See [logo review](../assets/brand/review/REVIEW.md) for the completed visual review.
+
+58 tests passed with zero skips in 61.340 seconds. A fresh quickstart returned
+`CALLED 3x` with 35,255 fitting SNPs in 12.4 seconds. Wheel packaging passed;
+see [packaging log](github_wheel.log).

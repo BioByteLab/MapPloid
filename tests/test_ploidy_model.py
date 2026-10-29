@@ -134,7 +134,7 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             bootstrap = outputs["bootstrap"].read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(bootstrap), 4)
 
-    def test_2x_scientific_limit_is_warning_not_uncertain(self):
+    def test_2x_has_only_data_diagnostic_warnings(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
             counts = root / "simulated_2x.tsv.gz"
@@ -168,9 +168,12 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             lines = outputs["result"].read_text(encoding="utf-8").splitlines()
             result = dict(zip(lines[0].split("\t"), lines[1].split("\t")))
             self.assertEqual(result["predicted_ploidy"], "2x")
-            self.assertEqual(result["qc_status"], "WARNING")
+            self.assertIn(result["qc_status"], ("PASS", "WARNING"))
             self.assertEqual(result["uncertainty_reasons"], "NONE")
-            self.assertIn("DISOMIC_4X_NOT_EXCLUDED", result["warnings"])
+            self.assertTrue(set(result["warnings"].split(";")) <= {
+                "NONE", "LOW_BOOTSTRAP_SUPPORT", "INSUFFICIENT_CHROMOSOME_EVIDENCE",
+                "CHROMOSOME_HETEROGENEITY", "RHO_AT_BOUNDARY", "TOO_FEW_BLOCKS",
+                "MODEL_ASSUMPTION_SENSITIVE", "POOR_THEORETICAL_FIT"})
 
     def test_parameter_boundary_is_warning_only(self):
         with TemporaryDirectory() as temporary:
@@ -209,7 +212,7 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             self.assertEqual(result["uncertainty_reasons"], "NONE")
             self.assertIn("RHO_AT_BOUNDARY", result["warnings"])
 
-    def test_poor_theoretical_fit_is_uncertain(self):
+    def test_poor_theoretical_fit_is_warning_only(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
             counts = root / "simulated_3x.tsv.gz"
@@ -241,9 +244,10 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             )
             lines = outputs["result"].read_text(encoding="utf-8").splitlines()
             result = dict(zip(lines[0].split("\t"), lines[1].split("\t")))
-            self.assertEqual(result["predicted_ploidy"], "UNCERTAIN")
-            self.assertEqual(result["qc_status"], "FAIL")
-            self.assertIn("POOR_THEORETICAL_FIT", result["uncertainty_reasons"])
+            self.assertEqual(result["predicted_ploidy"], "3x")
+            self.assertEqual(result["qc_status"], "WARNING")
+            self.assertEqual(result["uncertainty_reasons"], "NONE")
+            self.assertIn("POOR_THEORETICAL_FIT", result["warnings"])
 
 
 if __name__ == "__main__":

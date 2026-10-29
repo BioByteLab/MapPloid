@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "case": "Synthetic 3x, empty BAM and intentionally missing BAM",
+  "batch_report": "/work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/report.html",
+  "tests": [
+    "3x call",
+    "UNCERTAIN no coverage",
+    "FAILED missing input",
+    "batch continuation",
+    "six sample columns and seven batch columns",
+    "compact cleanup",
+    "normalized fitting profile",
+    "PDF and 300-dpi PNG export without SVG file",
+    "completed reuse without rewriting",
+    "no empty charts"
+  ]
+}

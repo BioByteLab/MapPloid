@@ -1,4 +1,4 @@
-"""Build a read-length-aware reference-genome mappability mask.
+"""Build a k-mer-aware reference-genome mappability mask.
 
 The workflow has one responsibility:
 
@@ -40,7 +40,7 @@ from .intervals import (
 class ReferenceMaskConfig:
     reference: Path
     output_dir: Path
-    read_length: int = 150
+    kmer_length: int = 150
     mismatches: int = 2
     threads: int = 8
     genmap_executable: str = "genmap"
@@ -54,14 +54,17 @@ class ReferenceMaskConfig:
     feature_bed: Path | None = None
     feature_gff: Path | None = None
     feature_types: tuple[str, ...] = ("gene",)
+    min_region_length: int = 1
 
     def validate(self) -> None:
-        if self.read_length < 1:
-            raise ValueError("read length must be positive")
-        if not 0 <= self.mismatches < self.read_length:
-            raise ValueError("mismatches must be in [0, read_length)")
+        if self.kmer_length < 1:
+            raise ValueError("k-mer length must be positive")
+        if not 0 <= self.mismatches < self.kmer_length:
+            raise ValueError("mismatches must be in [0, kmer_length)")
         if self.threads < 1:
             raise ValueError("threads must be positive")
+        if self.min_region_length < 1:
+            raise ValueError("minimum continuous region length must be positive")
         if self.base_rule not in {"strict", "start"}:
             raise ValueError("base rule must be 'strict' or 'start'")
         if self.gap_padding is not None and self.gap_padding < 0:
@@ -107,7 +110,7 @@ def build_reference_mask(config: ReferenceMaskConfig) -> dict[str, Path]:
     padded_gaps = work_dir / "assembly_gaps.padded.bed"
     sort_bed(raw_gaps, sorted_gaps)
     merge_sorted_bed(sorted_gaps, merged_gaps)
-    padding = config.read_length - 1 if config.gap_padding is None else config.gap_padding
+    padding = config.kmer_length - 1 if config.gap_padding is None else config.gap_padding
     pad_sorted_bed(merged_gaps, padded_gaps, genome_lengths, padding, padding)
 
     bedgraph, genmap_status = get_genmap_bedgraph(config, reference, work_dir)
@@ -118,7 +121,7 @@ def build_reference_mask(config: ReferenceMaskConfig) -> dict[str, Path]:
         unique_runs_to_mask(
             bedgraph,
             raw_sequence_mask,
-            config.read_length,
+            config.kmer_length,
             strict=config.base_rule == "strict",
         )
         sorted_sequence_mask = work_dir / "genmap_unique_mask.sorted.bed"
@@ -145,9 +148,14 @@ def build_reference_mask(config: ReferenceMaskConfig) -> dict[str, Path]:
     concatenate_files([path for path, _ in blacklist_sources], blacklist_concat)
     sort_bed(blacklist_concat, blacklist_sorted)
     merge_sorted_bed(blacklist_sorted, blacklist_merged)
-    subtract_sorted_bed(
-        sequence_mask, blacklist_merged, outputs["mappability_mask"]
+    after_exclusions = work_dir / "mask_after_exclusions.bed"
+    subtract_sorted_bed(sequence_mask, blacklist_merged, after_exclusions)
+    short_regions = work_dir / "short_continuous_regions.bed"
+    filter_continuous_regions(
+        after_exclusions, outputs["mappability_mask"], short_regions,
+        config.min_region_length,
     )
+    blacklist_sources.append((short_regions, "short_continuous_region"))
     complement_bed(
         outputs["mappability_mask"], genome_lengths, outputs["excluded_regions"]
     )
@@ -196,6 +204,16 @@ def build_reference_mask(config: ReferenceMaskConfig) -> dict[str, Path]:
     return outputs
 
 
+def filter_continuous_regions(source: Path, kept: Path, removed: Path, minimum: int) -> None:
+    """Filter complete post-exclusion runs, including exactly minimum bp."""
+    if minimum < 1:
+        raise ValueError("minimum continuous region length must be positive")
+    with kept.open("wt", encoding="utf-8") as good, removed.open("wt", encoding="utf-8") as short:
+        for interval in iter_bed(source):
+            destination = good if interval.length >= minimum else short
+            destination.write(f"{interval.chrom}\t{interval.start}\t{interval.end}\n")
+
+
 def get_genmap_bedgraph(
     config: ReferenceMaskConfig, reference: Path, work_dir: Path
 ) -> tuple[Path, str]:
@@ -205,7 +223,7 @@ def get_genmap_bedgraph(
             raise FileNotFoundError(f"GenMap bedGraph is missing or empty: {bedgraph}")
         return bedgraph, "provided"
 
-    prefix = work_dir / f"genmap_k{config.read_length}_e{config.mismatches}"
+    prefix = work_dir / f"genmap_k{config.kmer_length}_e{config.mismatches}"
     bedgraph = Path(f"{prefix}.bedgraph")
     if bedgraph.is_file() and bedgraph.stat().st_size > 0:
         print(f"[MapPloid] reusing completed GenMap bedGraph: {bedgraph}", file=sys.stderr)
@@ -226,7 +244,7 @@ def get_genmap_bedgraph(
 
     # GenMap -O is a file prefix, not an output directory.
     command = [
-        executable, "map", "-K", str(config.read_length), "-E", str(config.mismatches),
+        executable, "map", "-K", str(config.kmer_length), "-E", str(config.mismatches),
         "-I", str(index_dir), "-O", str(prefix), "-bg", "-T",
         str(config.threads),
     ]
@@ -251,7 +269,7 @@ def run_command(command: list[str], log_path: Path) -> None:
 
 
 def unique_runs_to_mask(
-    bedgraph: Path, output: Path, read_length: int, strict: bool = True
+    bedgraph: Path, output: Path, kmer_length: int, strict: bool = True
 ) -> None:
     """Stream a GenMap bedGraph and retain continuous score-1 runs.
 
@@ -259,7 +277,7 @@ def unique_runs_to_mask(
     string comparison to ``1`` avoid expensive float parsing.
     """
 
-    trim = read_length - 1 if strict else 0
+    trim = kmer_length - 1 if strict else 0
     chrom: bytes | None = None
     run_start = 0
     run_end = 0
@@ -442,7 +460,8 @@ def _run_signature(config: ReferenceMaskConfig, reference: Path) -> dict[str, ob
         "reference": str(reference),
         "reference_size": stat.st_size,
         "reference_mtime_ns": stat.st_mtime_ns,
-        "read_length": config.read_length,
+        "kmer_length": config.kmer_length,
+        "min_region_length": config.min_region_length,
         "mismatches": config.mismatches,
         "base_rule": config.base_rule,
         "gap_padding": config.gap_padding,

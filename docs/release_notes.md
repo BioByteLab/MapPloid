@@ -1,4 +1,8 @@
-# MapPloid v0.10.1
+# Release history
+
+[MapPloid 0.10.4](../RELEASE_NOTES_0.10.4.md) · [简体中文](../RELEASE_NOTES_0.10.4.zh-CN.md)
+
+## MapPloid v0.10.1
 
 Initial public distribution of the v19 manuscript companion software.
 

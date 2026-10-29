@@ -9,6 +9,8 @@ import sys
 from . import __version__
 from .bam_counts import BamCountConfig, build_bam_counts
 from .ploidy_model import (
+    DEFAULT_MAX_SITES,
+    DEFAULT_MIN_SITES,
     PloidyModelConfig,
     run_ploidy_model,
     simulate_and_validate,
@@ -31,7 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     reference.add_argument("--reference", type=Path, required=True)
     reference.add_argument("--out-dir", type=Path, required=True)
-    reference.add_argument("--read-length", type=int, default=150)
+    reference.add_argument("--kmer", dest="kmer_length", type=int, default=150)
+    reference.add_argument("--min-region-length", type=int, default=1,
+                           help="minimum continuous post-exclusion region length in bp (default: 1)")
     reference.add_argument("--mismatches", type=int, default=2)
     reference.add_argument("--threads", type=int, default=8)
     reference.add_argument("--genmap-executable", default="genmap")
@@ -49,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     reference.add_argument(
         "--gap-padding",
         type=int,
-        help="padding around ambiguous FASTA runs; default: read-length - 1",
+        help="padding around ambiguous FASTA runs; default: k-mer length - 1",
     )
     reference.add_argument("--repeat-bed", action="append", type=Path, default=[])
     reference.add_argument("--repeat-gff", action="append", type=Path, default=[])
@@ -126,8 +130,8 @@ def build_parser() -> argparse.ArgumentParser:
     model.add_argument("--counts", type=Path, required=True)
     model.add_argument("--out-dir", type=Path, required=True)
     model.add_argument("--sample")
-    model.add_argument("--max-sites", type=int, default=50_000)
-    model.add_argument("--min-sites", type=int, default=5_000)
+    model.add_argument("--max-sites", type=int, default=DEFAULT_MAX_SITES)
+    model.add_argument("--min-sites", type=int, default=DEFAULT_MIN_SITES)
     model.add_argument("--allele-min", type=float, default=0.15)
     model.add_argument("--allele-max", type=float, default=0.85)
     model.add_argument("--rho-min", type=float, default=1e-5)
@@ -142,14 +146,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     model.add_argument(
         "--max-fit-js", type=float, default=0.05,
-        help="maximum read-depth-aware minor-BAF JS divergence (default: 0.05)",
+        help="diagnostic warning threshold for minor-BAF JS divergence; does not veto calls (default: 0.05)",
     )
     model.add_argument("--block-size", type=int, default=5_000_000)
     model.add_argument("--bootstrap", type=int, default=100)
-    model.add_argument("--bootstrap-support", type=float, default=0.95)
+    model.add_argument("--bootstrap-support", type=float, default=0.85, help="diagnostic warning threshold for bootstrap agreement; does not veto calls (default: 0.85)")
     model.add_argument("--delta-bic", type=float, default=10.0)
     model.add_argument("--min-blocks", type=int, default=5)
-    model.add_argument("--chromosome-support", type=float, default=0.70)
+    model.add_argument("--chromosome-support", type=float, default=0.70, help="diagnostic warning threshold for chromosome agreement; does not veto calls (default: 0.70)")
     model.add_argument("--min-chromosome-sites", type=int, default=200)
     model.add_argument("--seed", type=int, default=20260803)
     model.set_defaults(handler=_run_ploidy_model)
@@ -180,7 +184,8 @@ def _run_reference(arguments: argparse.Namespace) -> int:
         ReferenceMaskConfig(
             reference=arguments.reference,
             output_dir=arguments.out_dir,
-            read_length=arguments.read_length,
+            kmer_length=arguments.kmer_length,
+            min_region_length=arguments.min_region_length,
             mismatches=arguments.mismatches,
             threads=arguments.threads,
             genmap_executable=arguments.genmap_executable,

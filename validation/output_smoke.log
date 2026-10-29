@@ -1,0 +1,13 @@
+[MapPloid] [1/3] Analyzing synthetic_3x
+[MapPloid] [2/3] Analyzing empty
+[MapPloid] [3/3] Analyzing missing
+[MapPloid] missing failed: BAM index is missing: /work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/missing.bam
+[MapPloid] Batch complete: 3 samples, 1 failed; report: /work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/report.html
+[MapPloid] [1/3] Analyzing synthetic_3x
+[MapPloid] [2/3] Analyzing empty
+[MapPloid] [3/3] Analyzing missing
+[MapPloid] missing failed: BAM index is missing: /work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/missing.bam
+[MapPloid] Batch complete: 3 samples, 1 failed; report: /work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/report.html
+/work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/result.tsv
+/work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/result.tsv
+Output smoke check passed: /work/test/MapPloid/src/mapploid_v0.10.4/validation/demo_schema3/batch/report.html

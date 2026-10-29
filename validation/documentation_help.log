@@ -1,0 +1,106 @@
+$ python mapploid --help
+usage: mapploid [-h] [--version] {prepare,call} ...
+
+Infer plant ploidy: prepare reference regions, then analyze one or more BAM samples.
+
+options:
+  -h, --help      show this help message and exit
+  --version       show the software version and exit
+
+commands:
+  {prepare,call}
+    prepare       prepare reusable analysis regions from a reference FASTA
+    call          infer ploidy for one BAM or a list of BAMs
+
+Prepare the reference first:
+  mapploid prepare --reference genome.fa --out reference_assets
+Analyze one sample:
+  mapploid call --bam sample.bam --assets reference_assets --out result
+Analyze a batch:
+  mapploid call --bam-list bams.txt --assets reference_assets --out batch_results
+
+$ python mapploid prepare --help
+usage: mapploid prepare [-h] --reference FASTA [--kmer BP]
+                        [--min-region-length BP] --out DIR [--threads N]
+                        [--exclude-bed BED] [--genmap-bedgraph FILE]
+
+Prepare once per reference and region settings. Use the resulting --out
+directory as call --assets.
+
+options:
+  -h, --help            show this help message and exit
+  --reference FASTA     reference genome as an uncompressed FASTA file
+  --kmer BP             GenMap k-mer length in bp (default: 150)
+  --min-region-length BP
+                        minimum continuous high-mappability region length in
+                        bp (default: 10000)
+  --out DIR             directory to create, e.g. reference_assets; pass this
+                        directory to call --assets
+  --threads N           threads for reference preparation (default: 8)
+  --exclude-bed BED     BED file of regions to exclude, e.g. organellar
+                        sequences; may be repeated
+  --genmap-bedgraph FILE
+                        optional GenMap bedGraph made with the same reference,
+                        k-mer length and 2 mismatches
+
+$ python mapploid call --help
+usage: mapploid call [-h] (--bam FILE | --bam-list FILE) --assets DIR --out
+                     DIR [--sample NAME] [--keep-details] [--export-figures]
+                     [--allele-min FLOAT] [--allele-max FLOAT] [--min-depth N]
+                     [--max-depth N] [--min-mapq N] [--min-baseq N]
+                     [--min-allele-reads N] [--pair-purity FLOAT]
+
+Infer sample ploidy using the reference directory created by prepare.
+
+options:
+  -h, --help            show this help message and exit
+  --bam FILE            one sample BAM file, coordinate-sorted with a BAI/CSI
+                        index
+  --bam-list FILE       text file with one BAM path per line; each BAM must be
+                        sorted and indexed
+  --assets DIR          reference directory created by prepare --out, e.g.
+                        reference_assets; shared by samples using the same
+                        reference
+  --out DIR             output directory: result.tsv for one sample, or a
+                        summary and sample subdirectories for a batch
+  --sample NAME         name for --bam only (default: BAM filename without
+                        .bam); batches use each BAM filename
+  --keep-details        retain stage tables and intermediate site data after
+                        completion
+  --export-figures      also export the report evidence figure as PDF and
+                        300-dpi PNG
+
+site filters (optional):
+  --allele-min FLOAT    minimum frequency of each of the two leading alleles
+                        (default: 0.15)
+  --allele-max FLOAT    maximum frequency of each of the two leading alleles
+                        (default: 0.85)
+  --min-depth N         minimum site depth after quality filtering (default:
+                        automatic)
+  --max-depth N         maximum site depth after quality filtering (default:
+                        automatic)
+  --min-mapq N          minimum read mapping quality, 0-255 (default: 20)
+  --min-baseq N         minimum base quality, 0-255 (default: 20)
+  --min-allele-reads N  minimum supporting reads for each allele (default: 2)
+  --pair-purity FLOAT   minimum fraction of valid base counts explained by the
+                        two leading alleles (default: 0.95)
+
+Examples:
+  mapploid call --bam sample.bam --assets reference_assets --out result
+  mapploid call --bam-list bams.txt --assets reference_assets --out batch_results
+
+bams.txt: one BAM path per line; relative paths are resolved from the list directory.
+Batch outputs: batch_results/result.tsv summarizes all samples;
+               batch_results/samples/SAMPLE/ contains each sample's results and logs.
+
+$ python mapploid --version
+0.10.4
+
+$ python examples/quickstart/run.py --help
+usage: run.py [-h] [--out OUT]
+
+Run a small, reproducible 3x example without downloading data.
+
+options:
+  -h, --help  show this help message and exit
+  --out OUT
