@@ -1,3 +1,4 @@
+from genmap_fixture import mock_genmap
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
@@ -7,7 +8,7 @@ from mapploid.reference_mask import ReferenceMaskConfig, build_reference_mask
 
 
 class ReferenceMaskTests(unittest.TestCase):
-    def test_reference_workflow_with_existing_bedgraph(self):
+    def test_generated_genmap_scores_are_filtered(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
             reference = root / "reference.fa"
@@ -31,13 +32,13 @@ class ReferenceMaskTests(unittest.TestCase):
                 "chr1\ttest\tgene\t1\t80\t.\t+\t.\tID=gene1\n",
                 encoding="utf-8",
             )
+            self.enterContext(mock_genmap(bedgraph))
             results = build_reference_mask(
                 ReferenceMaskConfig(
                     reference=reference,
                     output_dir=root / "output",
                     kmer_length=10,
                     mismatches=1,
-                    genmap_bedgraph=bedgraph,
                     gap_padding=0,
                     repeat_beds=[repeats],
                     feature_gff=features,

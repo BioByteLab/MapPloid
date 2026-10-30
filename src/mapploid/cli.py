@@ -13,7 +13,7 @@ def add_help(parser):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog='mapploid', description='Infer plant ploidy: prepare reference regions, then analyze one or more BAM samples.',
+        prog='mapploid', description='Infer sample ploidy: prepare reference regions, then analyze one or more BAM samples.',
         formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False,
         epilog='Prepare the reference first:\n  mapploid prepare --reference genome.fa --out reference_assets\n'
                'Analyze one sample:\n  mapploid call --bam sample.bam --assets reference_assets --out result\n'
@@ -30,7 +30,6 @@ def build_parser():
     prepare.add_argument('--out',type=Path,required=True,metavar='DIR',help='directory to create, e.g. reference_assets; pass this directory to call --assets')
     prepare.add_argument('--threads',type=int,default=8,metavar='N',help='threads for reference preparation (default: 8)')
     prepare.add_argument('--exclude-bed',type=Path,action='append',default=[],metavar='BED',help='BED file of regions to exclude, e.g. organellar sequences; may be repeated')
-    prepare.add_argument('--genmap-bedgraph',type=Path,metavar='FILE',help='optional GenMap bedGraph made with the same reference, k-mer length and 2 mismatches')
     call = sub.add_parser('call',help='infer ploidy for one BAM or a list of BAMs',add_help=False,
                           formatter_class=argparse.RawDescriptionHelpFormatter,
                           description='Infer sample ploidy using the reference directory created by prepare.',
@@ -73,7 +72,7 @@ def main(argv=None):
             path = prepare(PrepareConfig(
                 reference=args.reference,output_dir=args.out,kmer_length=args.kmer,
                 threads=args.threads,exclude_beds=args.exclude_bed,
-                genmap_bedgraph=args.genmap_bedgraph,min_region_length=args.min_region_length))
+                min_region_length=args.min_region_length))
             path = path.parent
         else:
             filters = {name:getattr(args,name) for name in (

@@ -2,6 +2,17 @@
 
 **English** | [简体中文](CHANGELOG.zh-CN.md)
 
+## 0.10.5 — 2026-10-30
+
+- Remove the external GenMap bedGraph input option and its implementation. Preparation runs GenMap and retains automatic resuming and reuse of generated scores.
+- Remove JS divergence computation, configuration, output fields and warning; retain observed and fitted distribution calculations.
+- Combine the report into “Decision requirements and supporting diagnostics”: the three decision gates are unchanged; Bootstrap stability and Chromosome consistency remain diagnostic and do not veto calls.
+- Remove the Valid replicates display and unused support rate among valid replicates. Retain internal validity checks and planned, valid and unresolved counts; stability still uses all planned replicates as its denominator.
+- Rename the figure “Observed and model-fitted distributions”. Synchronize English README and CLI documentation with the revised Chinese versions.
+- Use a fixed-seed random reference and matching synthetic BAM for the quickstart, with an actual GenMap run and no downloads.
+- Advance output schema to 4. The six-column sample TSV is unchanged; existing reference assets remain usable for call, while sample and batch outputs need new directories.
+- Core likelihood, BIC, fitted parameters and ploidy decision rules are unchanged.
+
 ## Repository cleanup — 2026-10-29
 
 - Keep one color SVG wordmark and focused bilingual user documentation.

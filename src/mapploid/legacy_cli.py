@@ -22,7 +22,7 @@ from .reference_mask import ReferenceMaskConfig, build_reference_mask
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mapploid",
-        description="Mapping-aware data preparation for plant ploidy inference.",
+        description="Mapping-aware data preparation for sample ploidy inference.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -39,11 +39,6 @@ def build_parser() -> argparse.ArgumentParser:
     reference.add_argument("--mismatches", type=int, default=2)
     reference.add_argument("--threads", type=int, default=8)
     reference.add_argument("--genmap-executable", default="genmap")
-    reference.add_argument(
-        "--genmap-bedgraph",
-        type=Path,
-        help="reuse this GenMap bedGraph instead of running GenMap",
-    )
     reference.add_argument(
         "--base-rule",
         choices=("strict", "start"),
@@ -144,10 +139,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--sensitivity-a-min", type=float, default=0.5001,
         help="weaker M4P boundary used only for sensitivity analysis",
     )
-    model.add_argument(
-        "--max-fit-js", type=float, default=0.05,
-        help="diagnostic warning threshold for minor-BAF JS divergence; does not veto calls (default: 0.05)",
-    )
     model.add_argument("--block-size", type=int, default=5_000_000)
     model.add_argument("--bootstrap", type=int, default=100)
     model.add_argument("--bootstrap-support", type=float, default=0.85, help="diagnostic warning threshold for bootstrap agreement; does not veto calls (default: 0.85)")
@@ -189,7 +180,6 @@ def _run_reference(arguments: argparse.Namespace) -> int:
             mismatches=arguments.mismatches,
             threads=arguments.threads,
             genmap_executable=arguments.genmap_executable,
-            genmap_bedgraph=arguments.genmap_bedgraph,
             base_rule=arguments.base_rule,
             gap_padding=arguments.gap_padding,
             repeat_beds=arguments.repeat_bed,
@@ -267,7 +257,6 @@ def _run_ploidy_model(arguments: argparse.Namespace) -> int:
             rho_max=arguments.rho_max,
             tetraploid_a_min=arguments.a_min,
             sensitivity_a_min=arguments.sensitivity_a_min,
-            max_fit_js=arguments.max_fit_js,
             block_size=arguments.block_size,
             bootstrap_replicates=arguments.bootstrap,
             bootstrap_support=arguments.bootstrap_support,

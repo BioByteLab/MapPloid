@@ -1,3 +1,3 @@
-"""Mapping-aware plant ploidy inference."""
+"""Mapping-aware sample ploidy inference."""
 
-__version__ = "0.10.4"
+__version__ = "0.10.5"

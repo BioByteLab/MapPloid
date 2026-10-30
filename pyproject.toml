@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mapploid"
-version = "0.10.4"
-description = "Mapping-aware allele counts for plant ploidy inference"
+version = "0.10.5"
+description = "Mapping-aware allele counts for sample ploidy inference"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "MapPloid developers"}]

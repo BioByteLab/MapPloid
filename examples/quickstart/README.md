@@ -8,21 +8,21 @@ Run all commands below from the repository root. First activate an environment w
 conda activate mapploid
 ```
 
-Requirements: Python 3.10+, NumPy, SciPy, pysam, matplotlib and SAMtools. Preparing a real reference also requires GenMap. For a first installation, run `python -m pip install .` from this version directory.
+Requirements: Python 3.10+, NumPy, SciPy, pysam, matplotlib, SAMtools and GenMap. For a first installation, run `python -m pip install .` from this version directory.
 
-## 1. One-command test (about half a minute; no downloads)
+## 1. One-command test (no downloads)
 
 ```bash
 python examples/quickstart/run.py
 ```
 
 The script creates small inputs, prepares reference regions, calls ploidy and prints the command for each step.
-Expect `Quickstart passed: CALLED 3x`, with **35,255** fitting SNPs.
-A measured fresh run took 12.3 seconds (an earlier run took 24 seconds); reuse usually takes about one second. Timing depends on the machine.
+Expect `Quickstart passed: CALLED 3x`.
+Runtime depends on the machine; repeat the command to reuse completed results.
 
 After running the example, open these local files under `examples/quickstart/`:
 
-- Example report (`output/result/report.html`): ploidy result and three-row fitted-distribution figure.
+- Example report (`output/result/report.html`): ploidy result and observed and model-fitted distributions.
 - Main result table (`output/result/result.tsv`): six columns for downstream analysis.
 - PDF (`output/result/figures/evidence.pdf`) / PNG (`output/result/figures/evidence.png`): exported figure; the PNG is 300 dpi.
 - Detailed record (`output/result/details/run.json`): settings, diagnostic reasons and warnings.
@@ -33,7 +33,7 @@ Repeating the same command reuses completed results. Choose a new directory to r
 python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 ```
 
-The example uses a 36 kb artificial reference and a 30x synthetic BAM. Supplied toy mappability scores bypass GenMap. This tests the workflow, not biological accuracy. It uses default filters, the 25,000-site minimum and 100 bootstrap replicates. The small reference may produce diagnostic warnings such as `TOO_FEW_BLOCKS`.
+The example uses fixed seeds to generate a 36 kb random reference and a matching 30x synthetic BAM, and runs GenMap to calculate mappability. The script constructs the BAM directly; it does not perform real sequencing or alignment. This tests the workflow, not biological accuracy. It uses default filters, the 25,000-site minimum and 100 bootstrap replicates. The small reference may produce diagnostic warnings such as `TOO_FEW_BLOCKS`.
 
 ## 2. Standard workflow: prepare the reference once → analyze samples → read results
 
@@ -97,10 +97,9 @@ The summary table and overview are in `batch_results/`; individual results are i
 After the one-command test, run these commands separately to see how `prepare --out` connects to `call --assets`. They reuse existing outputs:
 
 ```bash
-python mapploid prepare --reference examples/quickstart/output/inputs/reference.fa --kmer 50 --threads 1 --genmap-bedgraph examples/quickstart/output/inputs/scores.bg --out examples/quickstart/output/assets
+python mapploid prepare --reference examples/quickstart/output/inputs/reference.fa --kmer 50 --threads 1 --out examples/quickstart/output/assets
 python mapploid call --bam examples/quickstart/output/inputs/synthetic_3x.bam --assets examples/quickstart/output/assets --out examples/quickstart/output/result --export-figures
 ```
 
-Here `--genmap-bedgraph` supplies the example's existing scores. Real-data preparation normally uses the standard `prepare` command above to calculate them.
 
 Further reading: [command-line reference](../../docs/CLI.md) · [report guide](../../docs/REPORT_GUIDE.md).

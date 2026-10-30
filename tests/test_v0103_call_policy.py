@@ -12,7 +12,7 @@ import mapploid.ploidy_model as model
 
 
 class CallPolicyTests(unittest.TestCase):
-    def run_case(self, root, *, support=1., chromosomes=None, js=.01,
+    def run_case(self, root, *, support=1., chromosomes=None,
                  selected=25_000, delta=100., converged=True):
         counts = root / 'counts.tsv'
         counts.write_text('test input; site aggregation is supplied by this fixture\n')
@@ -30,7 +30,6 @@ class CallPolicyTests(unittest.TestCase):
             stack.enter_context(patch.object(model, 'fit_ploidy', return_value=fits[4]))
             stack.enter_context(patch.object(model, 'block_bootstrap', return_value=([], Counter({2: round(100*support)}))))
             stack.enter_context(patch.object(model, 'chromosome_model_support', return_value=([], chromosomes)))
-            stack.enter_context(patch.object(model, 'theoretical_fit_js_divergence', return_value=js))
             outputs = model.run_ploidy_model(model.PloidyModelConfig(counts, root / 'out', sample='policy'))
         manifest = json.loads(outputs['manifest'].read_text())
         with outputs['result'].open() as handle:
@@ -38,19 +37,17 @@ class CallPolicyTests(unittest.TestCase):
         self.assertEqual(serialized['predicted_ploidy'], manifest['result']['predicted_ploidy'])
         self.assertEqual(serialized['uncertainty_reasons'], manifest['result']['uncertainty_reasons'])
         self.assertEqual(serialized['warnings'], manifest['result']['warnings'])
-        self.assertEqual(manifest['mapploid_version'], '0.10.4')
+        self.assertEqual(manifest['mapploid_version'], '0.10.5')
         return manifest, outputs
 
-    def test_four_diagnostic_failures_are_warning_only_individually_and_together(self):
+    def test_supporting_diagnostic_failures_are_warning_only_individually_and_together(self):
         cases = [
             ({'support': .10}, {'LOW_BOOTSTRAP_SUPPORT'}),
             ({'chromosomes': Counter()}, {'INSUFFICIENT_CHROMOSOME_EVIDENCE'}),
-            ({'js': .10}, {'POOR_THEORETICAL_FIT'}),
             ({'chromosomes': Counter({2: 1, 3: 2})}, {'CHROMOSOME_HETEROGENEITY'}),
-            ({'support': .10, 'chromosomes': Counter({3: 1}), 'js': .10},
+            ({'support': .10, 'chromosomes': Counter({3: 1})},
              {'LOW_BOOTSTRAP_SUPPORT', 'INSUFFICIENT_CHROMOSOME_EVIDENCE',
-              'POOR_THEORETICAL_FIT', 'CHROMOSOME_HETEROGENEITY'}),
-            ({'js': float('nan')}, {'POOR_THEORETICAL_FIT'}),
+              'CHROMOSOME_HETEROGENEITY'}),
         ]
         for kwargs, expected in cases:
             with self.subTest(kwargs=kwargs), TemporaryDirectory() as temporary:
@@ -70,12 +67,34 @@ class CallPolicyTests(unittest.TestCase):
         for kwargs, expected in cases:
             with self.subTest(kwargs=kwargs), TemporaryDirectory() as temporary:
                 manifest, _ = self.run_case(Path(temporary), support=.10,
-                                           chromosomes=Counter({3: 1}), js=.10, **kwargs)
+                                           chromosomes=Counter({3: 1}), **kwargs)
                 result = manifest['result']
                 self.assertEqual(result['predicted_ploidy'], 'UNCERTAIN')
                 self.assertEqual(result['qc_status'], 'FAIL')
                 self.assertEqual(set(result['uncertainty_reasons'].split(';')), expected)
-                self.assertIn('POOR_THEORETICAL_FIT', result['warnings'])
+                self.assertIn('LOW_BOOTSTRAP_SUPPORT', result['warnings'])
+
+    def test_planned_denominator_and_two_display_only_diagnostics(self):
+        from mapploid.reporting import diagnostics
+        with TemporaryDirectory() as temporary:
+            manifest, _ = self.run_case(Path(temporary), support=.20)
+            result = manifest['result']
+            self.assertEqual(result['bootstrap_planned'], 100)
+            self.assertEqual(result['bootstrap_valid'], 20)
+            self.assertEqual(result['bootstrap_unresolved'], 80)
+            self.assertEqual(result['bootstrap_support'], .20)
+            self.assertNotIn('bootstrap_support_valid', result)
+            self.assertNotIn('fit_js_divergence', result)
+            gates, rows = diagnostics(dict(evidence=result, model=manifest), {})
+            self.assertEqual([row[-1] for row in gates], ['PASS'] * 3)
+            self.assertEqual([row[0] for row in rows], ['Bootstrap stability', 'Chromosome consistency'])
+            self.assertEqual([row[-1] for row in rows], ['WARNING', 'CONSISTENT'])
+            self.assertEqual(result['predicted_ploidy'], '2x')
+
+    def test_missing_diagnostics_are_not_shown_as_consistent(self):
+        from mapploid.reporting import diagnostics
+        _, rows = diagnostics(dict(evidence=dict(bootstrap_planned=100)), {})
+        self.assertEqual([row[-1] for row in rows], ['NOT_CALCULATED', 'NOT_ASSESSABLE'])
 
     def test_boundary_values_pass_remaining_gates(self):
         with TemporaryDirectory() as temporary:

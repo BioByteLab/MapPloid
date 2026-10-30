@@ -1,6 +1,7 @@
 """Generate a small synthetic 3x/empty-BAM batch to exercise the public outputs."""
 from pathlib import Path
 import sys
+import argparse
 import csv
 import json
 import hashlib
@@ -12,13 +13,15 @@ from mapploid.pipeline import PrepareConfig, prepare
 from mapploid.cli import main
 
 def run():
-    root = ROOT / "validation" / "demo_schema3"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", type=Path, default=ROOT / "validation" / "demo_schema4")
+    root = parser.parse_args().out.resolve()
     root.mkdir(parents=True, exist_ok=True)
     sys.path.insert(0, str(ROOT / "examples/quickstart"))
     from run import make_inputs
-    ref, scores, covered = make_inputs(root)
+    ref, covered = make_inputs(root)
     assets = root / "assets"
-    prepare(PrepareConfig(ref, assets, 50, 1, genmap_bedgraph=scores))
+    prepare(PrepareConfig(ref, assets, 50, 1))
     with pysam.AlignmentFile(str(covered), "rb") as handle:
         header = handle.header.to_dict()
     empty = root / "empty.bam"
@@ -40,7 +43,7 @@ def run():
     record = json.loads((sample / "details/run.json").read_text())
     assert list(record["result"]) == ["sample", "predicted_ploidy", "status", "selected_sites",
                                       "delta_bic", "analyzed_region_mb", "reason", "warnings"]
-    assert record["output_schema"] == 3
+    assert record["output_schema"] == 4
     profile = record["stages"][-1]["model"]["frequency_profile"]
     assert abs(sum(profile["observed"]) - 1) < 1e-10
     assert set(profile["fitted_models"]) == {"2", "3", "4"}
@@ -53,6 +56,15 @@ def run():
         with (output / row["result_file"]).open() as handle:
             assert next(csv.reader(handle, delimiter="\t")) == fields
     report = (sample / "report.html").read_text()
+    assert "Output schema 4" in report
+    assert "Decision requirements and supporting diagnostics" in report
+    assert report.count("<td>Decision requirement</td>") == 3
+    assert report.count("<td>Supporting diagnostic</td>") == 2
+    assert "Valid replicates" not in report and "JS divergence" not in report
+    assert "Observed and model-fitted distributions" in report
+    model_result = record["stages"][-1]["model"]["result"]
+    assert "bootstrap_valid" in model_result and "bootstrap_planned" in model_result
+    assert "fit_js_divergence" not in model_result and "bootstrap_support_valid" not in model_result
     svg = report[report.index("<svg"):report.index("</svg>") + len("</svg>")]
     assert all(f"{p}x model" in svg for p in (2, 3, 4))
     assert svg.count("BEST") == 1
@@ -72,7 +84,7 @@ def run():
     # Missing-data reports must not contain empty charts.
     assert "<svg" not in (output / "samples/empty/report.html").read_text()
     assert "FAILED" in (output / "samples/missing/report.html").read_text()
-    (ROOT / "validation/output_smoke.json").write_text(json.dumps({
+    (root / "output_smoke.json").write_text(json.dumps({
         "passed": True, "case": "Synthetic 3x, empty BAM and intentionally missing BAM",
         "batch_report": str(output / "report.html"), "tests": [
             "3x call", "UNCERTAIN no coverage", "FAILED missing input", "batch continuation",

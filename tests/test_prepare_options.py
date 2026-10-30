@@ -1,3 +1,4 @@
+from genmap_fixture import mock_genmap
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from io import StringIO
@@ -23,7 +24,34 @@ class PrepareOptionsTests(unittest.TestCase):
                           'chr1\t12000\t22004\t1\n'
                           'chr1\t22004\t24000\t0.5\n'
                           'chr1\t24000\t34005\t1\n')
+        self.enterContext(mock_genmap(scores))
         return reference, scores
+
+    def test_external_bedgraph_option_is_removed(self):
+        from mapploid.legacy_cli import build_parser as legacy_parser
+        for parser, command in [
+            (build_parser(), ['prepare', '--reference', 'r.fa', '--out', 'assets']),
+            (legacy_parser(), ['reference-mask', '--reference', 'r.fa', '--out-dir', 'assets']),
+        ]:
+            parser.parse_args(command)
+            self.assertNotIn('--genmap-bedgraph', parser.format_help())
+            with redirect_stderr(StringIO()), self.assertRaises(SystemExit) as caught:
+                parser.parse_args(command + ['--genmap-bedgraph', 'scores.bg'])
+            self.assertEqual(caught.exception.code, 2)
+        self.assertNotIn('genmap_bedgraph', PrepareConfig.__dataclass_fields__)
+        self.assertNotIn('genmap_bedgraph', ReferenceMaskConfig.__dataclass_fields__)
+
+    def test_v0104_reference_assets_remain_usable(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reference, _ = self.fixture(root)
+            assets = root / 'assets'
+            prepare(PrepareConfig(reference, assets, kmer_length=5))
+            path = assets / 'assets.json'
+            manifest = json.loads(path.read_text())
+            manifest['version'] = '0.10.4'
+            path.write_text(json.dumps(manifest))
+            self.assertEqual(load_assets(assets)['version'], '0.10.4')
 
     def test_cli_defaults_and_complete_prepare_flow(self):
         args = build_parser().parse_args(['prepare', '--reference', 'r.fa', '--out', 'a'])
@@ -34,7 +62,7 @@ class PrepareOptionsTests(unittest.TestCase):
             reference, scores = self.fixture(root)
             assets = root / 'assets'
             command = ['prepare', '--reference', str(reference), '--out', str(assets),
-                       '--kmer', '5', '--genmap-bedgraph', str(scores)]
+                       '--kmer', '5']
             with redirect_stdout(StringIO()) as output, redirect_stderr(StringIO()):
                 self.assertEqual(main(command), 0)
             self.assertEqual(output.getvalue().strip(), str(assets))
@@ -68,8 +96,7 @@ class PrepareOptionsTests(unittest.TestCase):
             excluded = root / 'exclude.bed'
             excluded.write_text('chr1\t25000\t25001\n')
             out = build_reference_mask(ReferenceMaskConfig(
-                reference, root / 'mask', kmer_length=5, min_region_length=10000,
-                genmap_bedgraph=scores, exclude_beds=[excluded]))
+                reference, root / 'mask', kmer_length=5, min_region_length=10000, exclude_beds=[excluded]))
             self.assertEqual(out['mappability_mask'].read_text(), 'chr1\t12004\t22004\n')
             reasons = out['exclusion_sources'].read_text()
             self.assertIn('chr1\t24004\t25000\tshort_continuous_region', reasons)
@@ -92,8 +119,7 @@ class PrepareOptionsTests(unittest.TestCase):
             root = Path(temporary)
             reference, scores = self.fixture(root)
             assets = root / 'assets'
-            prepare(PrepareConfig(reference, assets, kmer_length=5,
-                                  genmap_bedgraph=scores, min_region_length=300))
+            prepare(PrepareConfig(reference, assets, kmer_length=5, min_region_length=300))
             manifest = json.loads((assets / 'assets.json').read_text())
             manifest['schema'] = 1
             manifest['read_length'] = manifest.pop('kmer_length')
@@ -108,8 +134,7 @@ class PrepareOptionsTests(unittest.TestCase):
             root = Path(temporary)
             reference, scores = self.fixture(root)
             assets = root / 'assets'
-            prepare(PrepareConfig(reference, assets, kmer_length=5,
-                                  genmap_bedgraph=scores, min_region_length=20000))
+            prepare(PrepareConfig(reference, assets, kmer_length=5, min_region_length=20000))
             manifest = load_assets(assets)
             self.assertEqual(manifest['eligible_bases'], 0)
             self.assertEqual((assets / 'mappable_regions.bed').read_text(), '')

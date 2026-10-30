@@ -4,7 +4,7 @@
 
 [Main documentation](../README.md) · [Quickstart](../examples/quickstart/README.md)
 
-Run these commands from the version directory, or use the installed `mapploid` command without the `python` prefix. Terminal help is in English; both documentation versions describe the same public options below. Code, comments and commands remain in English.
+Run these commands from the version directory, or use the installed `mapploid` command without the `python` prefix. 
 
 ```bash
 python mapploid --help
@@ -35,9 +35,8 @@ python mapploid prepare --reference genome.fa --kmer 150 --out reference_assets
 | --min-region-length BP | 10000 | Minimum continuous high-mappability region length after exclusions |
 | --threads N | 8 | Threads for reference preparation |
 | --exclude-bed BED | None | Exclude regions in a BED file; may be repeated |
-| --genmap-bedgraph FILE | None | Reuse GenMap bedGraph scores made with the same reference, k-mer length and 2 mismatches |
 
-Without supplied scores, preparation runs GenMap. Keep the original FASTA accessible. Reuse assets only for the same reference and preparation settings; use a new directory when these change.
+Preparation runs GenMap to calculate mappability scores; resuming the same task automatically reuses generated scores. Keep the original FASTA accessible. Reuse assets only for the same reference and preparation settings; use a new directory when these change.
 
 ## Call one sample or a batch
 
@@ -53,8 +52,8 @@ python mapploid call --bam-list bams.txt --assets reference_assets --out batch_r
 | --assets DIR | Required | Directory created by `prepare --out` |
 | --out DIR | Required | Single-sample output directory or batch summary directory |
 | --sample NAME | BAM filename without `.bam` | Single-sample name; not allowed with `--bam-list` |
-| --keep-details | Off | Retain stage tables and intermediate site data after completion |
-| --export-figures | Off | Export the report figure as PDF and 300-dpi PNG when model evidence is available |
+| --keep-details | Off by default | Retain stage tables and intermediate site data after completion |
+| --export-figures | Off by default | Export the report figure as PDF and 300-dpi PNG when model evidence is available |
 
 Blank lines and lines starting with `#` in BAM lists are ignored. Relative paths resolve from the list's directory. BAM filenames must be distinct and samples must share a reference. Batch results are under `samples/SAMPLE/`; the batch TSV adds a `result_file` column.
 
@@ -80,7 +79,7 @@ python examples/quickstart/run.py
 python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 ```
 
-`--out DIR` selects the example working directory (default: `examples/quickstart/output/`). The script creates inputs, prepares assets and runs a synthetic 3x call. Repeat the same command to reuse its result; use a new directory for a fresh calculation. `-h` / `--help` displays script help.
+`--out DIR` selects the example working directory (default: `examples/quickstart/output/`). The script creates inputs, runs GenMap to prepare assets and runs a synthetic 3x call. Repeat the same command to reuse its result; use a new directory for a fresh calculation. `-h` / `--help` displays script help.
 
 ## Exit codes and resuming
 
@@ -101,13 +100,12 @@ names and lengths must match. `--assets` is the directory produced by
 
 Reference preparation defaults: `--kmer 150`, two GenMap mismatches,
 `--min-region-length 10000`, `--threads 8`. Optional `--exclude-bed` may be
-repeated. `--genmap-bedgraph` can supply existing matching GenMap scores.
+repeated to exclude specified regions.
 Strict score-1 regions are retained after gaps and exclusions; short regions
 are not joined across gaps. Use a new asset directory for changed preparation
 settings. The source FASTA must remain accessible.
 
-This release preserves the manuscript v20 source's read-length check: up to
-10,000 primary alignments are inspected, and reads shorter than the asset k-mer
+Read-length check: up to 10,000 primary alignments are inspected, and reads shorter than the asset k-mer
 length cause an input error.
 
 Both leading alleles must pass the frequency interval. Sample names may contain letters, digits, dots, underscores and hyphens.

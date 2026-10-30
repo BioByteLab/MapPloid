@@ -4,10 +4,9 @@
 
 [主文档](../README.zh-CN.md) · [命令行参考](CLI.zh-CN.md)
 
-在浏览器打开 `report.html`，可离线使用。报告、图内标签、日志和机器可读标识使用英文，本指南提供对应的中英文解释。
-后续分析读取 `result.tsv`，完整诊断值查看 `details/run.json`。
+结果报告文件 `report.html`，后续分析读取 `result.tsv`，完整诊断值查看 `details/run.json`。
 
-## 先看结果
+## result.tsv 结果文件
 
 | 标签 | 含义 |
 |---|---|
@@ -22,42 +21,36 @@
 | Not assessable | 证据不足，无法评估，例如没有有效染色体 |
 
 主 TSV 包含 `sample`、`predicted_ploidy`、`status`、`selected_sites`、`delta_bic`、`analyzed_region_mb` 六列。
-批量 TSV 增加 `result_file`。缺失值为 `NA`，JSON 中非有限数值为 `null`。
+批量 TSV 增加 `result_file`。
 原因和警告位于各样本 `details/run.json` 的 `result` 下。
 
-## 判定要求
+## 判定要求与辅助诊断
 
-| 报告标签 | 要求 |
-|---|---|
-| Fitting SNPs | 实际拟合至少使用 25,000 个 SNP |
-| BIC separation | 次优模型 BIC 减去最优模型 BIC，至少为 10 |
-| Main-model convergence | 三个主模型（2x、3x、4x）全部收敛 |
-| PASS / FAIL | 通过 / 未通过该要求 |
+三项判定要求决定是否报告倍性；Bootstrap stability 和 Chromosome consistency 只做展示和诊断说明。
 
-未满足要求时，分析从约 20 Mb 扩展至 50 Mb，再到 100 Mb，以可用区域为限。
-运行失败与证据不足是不同情况。以下诊断警告均不增加额外判定门槛。
+| 用途 | 报告标签 | 要求或解释 |
+|---|---|---|
+| 判定要求 | Fitting SNPs | 实际拟合至少使用 25,000 个 SNP |
+| 判定要求 | BIC separation | 次优模型 BIC 减去最优模型 BIC，至少为 10 |
+| 判定要求 | Main-model convergence | 三个主模型（2x、3x、4x）全部收敛 |
+| 辅助诊断 | Bootstrap stability | 计划区块 bootstrap 重复与全局候选的一致率；低于 0.85 时提示警告 |
+| 辅助诊断 | Chromosome consistency | 有效参考序列数量及其对全局候选的一致率；少于 3 条或一致率低于 70% 时提示警告 |
 
-## 诊断证据
+判定要求使用 `PASS / FAIL` 表示通过或未通过；辅助诊断使用 `CONSISTENT / WARNING` 表示达到诊断阈值或需要关注，不会否决倍性判定。
+未满足判定要求时，分析从约 20 Mb 扩展至 50 Mb，再到 100 Mb，以可用区域为限。运行失败与证据不足是不同情况。
 
-| 报告标签 | 解释 |
-|---|---|
-| Bootstrap stability | 计划区块 bootstrap 重复与全局候选的一致率；未得到明确结果的重复仍计入分母 |
-| Valid replicates | 得到明确结果的 bootstrap 重复数与计划重复数 |
-| Chromosome consistency | 有效参考序列数量及其对全局候选的一致率 |
-| Fit shape (JS divergence) | 观测与拟合分布的形状差异，越小表示越接近 |
-| WARNING | 未达到诊断阈值，不会否决倍性判定 |
-
-Bootstrap 支持度不是判定正确的概率。
-有效参考序列要求至少 200 个拟合 SNP、模型收敛且 BIC 有限、delta BIC 至少为 10。
+Bootstrap 支持度以全部计划重复为分母，未得到有效模型结果的重复不投票但仍计入分母；它不是判定正确的概率。
+有效参考序列要求至少 200 个拟合 SNP、三个模型均收敛且 BIC 有限、delta BIC 至少为 10。
 没有有效参考序列时无法评估一致率，不代表一致率为 0%。
+模型收敛表示优化达到停止标准，最小 BIC 表示候选间相对最优，两者均不保证绝对拟合良好；可结合下方分布图检查观测与模型的差异。
 
-## 三行证据图
+## 观测与理论拟合分布图
 
 三行分别对应 2x、3x、4x 候选，使用相同拟合 SNP、分箱和坐标尺度。
 
 | 图内标签 | 含义 |
 |---|---|
-| Observed and fitted distributions | 观测位点频率与模型预测的对比 |
+| Observed and model-fitted distributions | 观测位点频率与模型预测的对比 |
 | Observed | 灰色观测分布 |
 | Fitted model | 彩色拟合分布 |
 | Minor allele fraction | 次要等位基因计数除以两个主要等位基因的计数之和 |
@@ -91,7 +84,6 @@ Bootstrap 支持度不是判定正确的概率。
 | LOW_BOOTSTRAP_SUPPORT | 100 次计划区块 bootstrap 的一致率低于 0.85 |
 | INSUFFICIENT_CHROMOSOME_EVIDENCE | 有效参考序列少于 3 条 |
 | CHROMOSOME_HETEROGENEITY | 有效参考序列对全局候选的支持比例低于 70% |
-| POOR_THEORETICAL_FIT | JS 散度超过 0.05，或无法计算为有限值 |
 
 ### 其他诊断警告
 
@@ -122,7 +114,7 @@ Bootstrap 支持度不是判定正确的概率。
 ## 运行记录与兼容性
 
 主拟合使用 25,000–100,000 个 SNP；超过上限时按各染色体位点数比例分配配额并进行确定性抽样。
-分析区域大小以 Mb 表示。输出结构版本为 3，旧版结果目录不能直接复用。
+分析区域大小以 Mb 表示。输出结构版本为 4，旧版结果目录不能直接复用；既有参考资源仍可用于 `call --assets`。
 
 `details/run.json` 记录输入身份、请求与实际设置、随机种子、阶段摘要、模型拟合、诊断和绘图数据。
 BAM 身份由路径、大小和修改时间标识，索引和参考资源清单另有 SHA256 校验值；这不等于整个 BAM 的校验值。

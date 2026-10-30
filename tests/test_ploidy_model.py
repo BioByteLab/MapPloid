@@ -161,7 +161,6 @@ class PloidyModelIntegrationTests(unittest.TestCase):
                     delta_bic=0,
                     min_blocks=1,
                     min_chromosome_sites=1,
-                    max_fit_js=0.10,
                     seed=73,
                 )
             )
@@ -173,7 +172,7 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             self.assertTrue(set(result["warnings"].split(";")) <= {
                 "NONE", "LOW_BOOTSTRAP_SUPPORT", "INSUFFICIENT_CHROMOSOME_EVIDENCE",
                 "CHROMOSOME_HETEROGENEITY", "RHO_AT_BOUNDARY", "TOO_FEW_BLOCKS",
-                "MODEL_ASSUMPTION_SENSITIVE", "POOR_THEORETICAL_FIT"})
+                "MODEL_ASSUMPTION_SENSITIVE"})
 
     def test_parameter_boundary_is_warning_only(self):
         with TemporaryDirectory() as temporary:
@@ -202,7 +201,6 @@ class PloidyModelIntegrationTests(unittest.TestCase):
                     delta_bic=0,
                     min_blocks=1,
                     min_chromosome_sites=1,
-                    max_fit_js=0.10,
                     seed=79,
                 )
             )
@@ -212,7 +210,7 @@ class PloidyModelIntegrationTests(unittest.TestCase):
             self.assertEqual(result["uncertainty_reasons"], "NONE")
             self.assertIn("RHO_AT_BOUNDARY", result["warnings"])
 
-    def test_poor_theoretical_fit_is_warning_only(self):
+    def test_distribution_profile_is_retained_without_js_diagnostic(self):
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
             counts = root / "simulated_3x.tsv.gz"
@@ -238,16 +236,18 @@ class PloidyModelIntegrationTests(unittest.TestCase):
                     delta_bic=0,
                     min_blocks=1,
                     min_chromosome_sites=1,
-                    max_fit_js=0.0,
                     seed=83,
                 )
             )
             lines = outputs["result"].read_text(encoding="utf-8").splitlines()
             result = dict(zip(lines[0].split("\t"), lines[1].split("\t")))
             self.assertEqual(result["predicted_ploidy"], "3x")
-            self.assertEqual(result["qc_status"], "WARNING")
             self.assertEqual(result["uncertainty_reasons"], "NONE")
-            self.assertIn("POOR_THEORETICAL_FIT", result["warnings"])
+            self.assertNotIn("POOR_THEORETICAL_FIT", result["warnings"])
+            self.assertNotIn("fit_js_divergence", result)
+            import json
+            manifest = json.loads(outputs["manifest"].read_text())
+            self.assertEqual(set(manifest["frequency_profile"]["fitted_models"]), {"2", "3", "4"})
 
 
 if __name__ == "__main__":

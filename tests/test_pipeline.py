@@ -1,3 +1,4 @@
+from genmap_fixture import mock_genmap
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -19,6 +20,7 @@ class PipelineTests(unittest.TestCase):
         self.ref.write_text('>chr1\n'+'A'*2000+'\n')
         self.bg=self.root/'scores.bedgraph'
         self.bg.write_text('chr1\t0\t1951\t1\n')
+        self.enterContext(mock_genmap(self.bg))
         self.assets=self.root/'assets'
         self.bam=self.root/'sample.bam'
         with pysam.AlignmentFile(str(self.bam),'wb',header={
@@ -30,7 +32,7 @@ class PipelineTests(unittest.TestCase):
         self.temp.cleanup()
 
     def prepare(self):
-        return p.prepare(p.PrepareConfig(self.ref,self.assets,50,1,genmap_bedgraph=self.bg,min_region_length=300))
+        return p.prepare(p.PrepareConfig(self.ref,self.assets,50,1,min_region_length=300))
 
     def result(self, output):
         with output.open() as h:
@@ -141,7 +143,7 @@ class PipelineTests(unittest.TestCase):
                 raise RuntimeError('interrupted fixture')
             config.output_dir.mkdir(parents=True,exist_ok=True)
             row=p.empty_evidence('LOW_DELTA_BIC')
-            row['warnings']='LOW_BOOTSTRAP_SUPPORT;INSUFFICIENT_CHROMOSOME_EVIDENCE;POOR_THEORETICAL_FIT;CHROMOSOME_HETEROGENEITY'
+            row['warnings']='LOW_BOOTSTRAP_SUPPORT;INSUFFICIENT_CHROMOSOME_EVIDENCE;CHROMOSOME_HETEROGENEITY'
             if config.output_dir.parent.name=='stage_2':
                 row.update(predicted_ploidy='3x',uncertainty_reasons='NONE',selected_sites=30000)
             path=config.output_dir/'run_manifest.json'

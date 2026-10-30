@@ -44,7 +44,6 @@ class ReferenceMaskConfig:
     mismatches: int = 2
     threads: int = 8
     genmap_executable: str = "genmap"
-    genmap_bedgraph: Path | None = None
     base_rule: str = "strict"
     gap_padding: int | None = None
     repeat_beds: list[Path] = field(default_factory=list)
@@ -217,12 +216,6 @@ def filter_continuous_regions(source: Path, kept: Path, removed: Path, minimum: 
 def get_genmap_bedgraph(
     config: ReferenceMaskConfig, reference: Path, work_dir: Path
 ) -> tuple[Path, str]:
-    if config.genmap_bedgraph:
-        bedgraph = config.genmap_bedgraph.resolve()
-        if not bedgraph.is_file() or bedgraph.stat().st_size == 0:
-            raise FileNotFoundError(f"GenMap bedGraph is missing or empty: {bedgraph}")
-        return bedgraph, "provided"
-
     prefix = work_dir / f"genmap_k{config.kmer_length}_e{config.mismatches}"
     bedgraph = Path(f"{prefix}.bedgraph")
     if bedgraph.is_file() and bedgraph.stat().st_size > 0:
@@ -465,9 +458,6 @@ def _run_signature(config: ReferenceMaskConfig, reference: Path) -> dict[str, ob
         "mismatches": config.mismatches,
         "base_rule": config.base_rule,
         "gap_padding": config.gap_padding,
-        "genmap_bedgraph": (
-            str(config.genmap_bedgraph.resolve()) if config.genmap_bedgraph else None
-        ),
         "repeat_beds": [str(path.resolve()) for path in config.repeat_beds],
         "repeat_gffs": [str(path.resolve()) for path in config.repeat_gffs],
         "low_complexity_beds": [str(path.resolve()) for path in config.low_complexity_beds],

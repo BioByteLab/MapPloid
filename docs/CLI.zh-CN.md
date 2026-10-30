@@ -4,7 +4,7 @@
 
 [主文档](../README.zh-CN.md) · [快速入门](../examples/quickstart/README.zh-CN.md)
 
-以下命令在本版本目录执行；安装后也可直接使用 `mapploid` 命令，无需 `python` 前缀。终端帮助使用英文；中英文说明覆盖相同的公开参数。代码、注释及命令均使用英文。
+以下命令在本版本目录执行；安装后也可直接使用 `mapploid` 命令，无需 `python` 前缀。
 
 ```bash
 python mapploid --help
@@ -35,9 +35,8 @@ python mapploid prepare --reference genome.fa --kmer 150 --out reference_assets
 | --min-region-length BP | 10000 | 扣除排除区域后，连续高可比对区域的最小长度 |
 | --threads N | 8 | 参考准备使用的线程数 |
 | --exclude-bed BED | 无 | 排除 BED 文件中的区域；可重复指定 |
-| --genmap-bedgraph FILE | 无 | 复用同一参考、相同 k-mer 长度及 2 个错配设置生成的 GenMap bedGraph 分数 |
 
-未提供分数时运行 GenMap。原始 FASTA 需保持可访问。仅对相同参考及准备参数复用资源，改变这些设置时使用新目录。
+参考准备调用 GenMap 计算可比对分数；相同任务续跑时自动复用已生成的分数。原始 FASTA 需保持可访问。仅对相同参考及准备参数复用资源，改变这些设置时使用新目录。
 
 ## 分析单样本或批量样本
 
@@ -53,13 +52,13 @@ python mapploid call --bam-list bams.txt --assets reference_assets --out batch_r
 | --assets DIR | 必填 | `prepare --out` 创建的目录 |
 | --out DIR | 必填 | 单样本输出目录或批量汇总目录 |
 | --sample NAME | 去掉 `.bam` 后缀的 BAM 文件名 | 单样本名称，不能与 `--bam-list` 一起使用 |
-| --keep-details | 关闭 | 完成后保留阶段表及中间位点数据 |
-| --export-figures | 关闭 | 有可用模型证据时，将报告图导出为 PDF 和 300 dpi PNG |
+| --keep-details | 默认关闭 | 完成后保留阶段表及中间位点数据 |
+| --export-figures | 默认关闭 | 有可用模型证据时，将报告图导出为 PDF 和 300 dpi PNG |
 
 BAM 列表忽略空行和以 `#` 开头的行，相对路径以列表文件所在目录为基准。
 BAM 文件名必须不同，且样本使用同一参考。批量单样本结果位于 `samples/SAMPLE/`，批量 TSV 增加 `result_file` 列。
 
-### 可选位点过滤
+### 位点过滤参数（可选）
 
 | 选项 | 默认值 | 含义 |
 |---|---|---|
@@ -84,7 +83,7 @@ python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 ```
 
 `--out DIR` 指定样例工作目录，默认是 `examples/quickstart/output/`。
-脚本创建输入、准备参考资源并运行合成三倍体判定。重复执行相同命令可复用结果，使用新目录可完整重算。
+脚本创建输入、调用 GenMap 准备参考资源并运行合成三倍体判定。重复执行相同命令可复用结果，使用新目录可完整重算。
 `-h` / `--help` 显示脚本帮助。
 
 ## 退出码及续跑
@@ -107,11 +106,11 @@ BAM 必须按坐标排序，并带 BAI 或 CSI 索引。参考序列名称和长
 `--assets` 是 `prepare --out` 生成的目录，不是 FASTA 或 BED 文件。
 
 参考准备默认值：`--kmer 150`、GenMap 允许 2 个错配、`--min-region-length 10000`、`--threads 8`。
-可重复指定 `--exclude-bed`；`--genmap-bedgraph` 可提供参数匹配的既有 GenMap 分数。
+可重复指定 `--exclude-bed` 排除指定区域。
 扣除参考缺口及排除区域后保留严格分数为 1 的区域；短区域不会跨缺口拼接。
 准备参数改变时使用新资源目录。原始 FASTA 必须保持可访问。
 
-本版本保留 manuscript v20 源代码的读长检查：最多检查 10,000 条主比对记录，
+读长检查：最多检查 10,000 条主比对记录，
 若读长小于参考资源的 k-mer 长度，则报输入错误。
 
 两个主要等位基因均需通过频率区间过滤。样本名可包含字母、数字、点、下划线及连字符。

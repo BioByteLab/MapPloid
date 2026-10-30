@@ -32,7 +32,6 @@ class PrepareConfig:
     kmer_length: int = 150
     threads: int = 8
     exclude_beds: list[Path] = field(default_factory=list)
-    genmap_bedgraph: Path | None = None
     genmap_executable: str = "genmap"
     min_region_length: int = 10_000
 
@@ -162,9 +161,7 @@ def prepare(config: PrepareConfig):
                      reference_sha256=sha256(reference), kmer_length=config.kmer_length,
                      min_region_length=config.min_region_length,
                      mismatches=2, genmap_executable=config.genmap_executable,
-                     exclude_beds=[dict(identity(p), sha256=sha256(p)) for p in config.exclude_beds],
-                     genmap_bedgraph=(dict(identity(config.genmap_bedgraph), sha256=sha256(config.genmap_bedgraph))
-                                      if config.genmap_bedgraph else None))
+                     exclude_beds=[dict(identity(p), sha256=sha256(p)) for p in config.exclude_beds])
     with output_lock(root):
         check_signature(root, signature)
         if (root / "assets.json").exists():
@@ -175,7 +172,7 @@ def prepare(config: PrepareConfig):
             mask_outputs = build_reference_mask(ReferenceMaskConfig(
                 reference=reference, output_dir=root / "details" / "mask",
                 kmer_length=config.kmer_length, mismatches=2, threads=config.threads,
-                exclude_beds=config.exclude_beds, genmap_bedgraph=config.genmap_bedgraph,
+                exclude_beds=config.exclude_beds,
                 genmap_executable=config.genmap_executable,
                 min_region_length=config.min_region_length,
             ))
@@ -224,7 +221,7 @@ def load_assets(root):
             "first run mapploid prepare --reference genome.fa --out reference_assets"
         )
     manifest = read_json(root / "assets.json")
-    if manifest.get("schema") not in (1, 2) or manifest.get("version") not in ("0.10.1", "0.10.2", "0.10.3", __version__):
+    if manifest.get("schema") not in (1, 2) or manifest.get("version") not in ("0.10.1", "0.10.2", "0.10.3", "0.10.4", __version__):
         raise ValueError("reference assets were prepared by a different MapPloid version")
     if manifest["schema"] == 1:
         # Existing assets remain readable, without reinterpreting them as 10kb-filtered.

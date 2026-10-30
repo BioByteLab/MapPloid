@@ -25,13 +25,12 @@ from scipy.optimize import minimize
 from scipy.special import betaln, gammaln, logsumexp
 
 from . import __version__
-MODEL_VERSION = "beta-binomial-v8-three-call-gates-output3"
+MODEL_VERSION = "beta-binomial-v9-three-call-gates-output4"
 MIN_ALLELE_READS = 2
 DEFAULT_MIN_SITES = 25_000
 DEFAULT_MAX_SITES = 100_000
 DEFAULT_TETRAPLOID_A_MIN = 4 / 7
 DEFAULT_SENSITIVITY_A_MIN = 0.5001
-DEFAULT_MAX_FIT_JS = 0.05
 DEFAULT_FIT_BIN_WIDTH = 0.005
 PLOIDIES = (2, 3, 4)
 EXPECTED_MEANS = {
@@ -84,8 +83,6 @@ class PloidyModelConfig:
     rho_max: float = 0.25
     tetraploid_a_min: float = DEFAULT_TETRAPLOID_A_MIN
     sensitivity_a_min: float = DEFAULT_SENSITIVITY_A_MIN
-    # Diagnostic warning thresholds; these do not veto a ploidy call.
-    max_fit_js: float = DEFAULT_MAX_FIT_JS
     block_size: int = 5_000_000
     bootstrap_replicates: int = 100
     bootstrap_support: float = 0.85
@@ -114,8 +111,6 @@ class PloidyModelConfig:
             raise ValueError("tetraploid a-min must be in (0.5, 1)")
         if not 0.5 < self.sensitivity_a_min <= self.tetraploid_a_min:
             raise ValueError("sensitivity a-min must be in (0.5, tetraploid a-min]")
-        if not 0 <= self.max_fit_js <= 1:
-            raise ValueError("maximum theoretical-fit JS divergence must be in [0, 1]")
         if self.block_size < 1 or self.bootstrap_replicates < 0:
             raise ValueError("block size must be positive and bootstrap count nonnegative")
         if not 0 < self.bootstrap_support <= 1:
@@ -222,13 +217,6 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
         if informative_chromosomes else 0.0
     )
 
-    fit_js = theoretical_fit_js_divergence(
-        data.histogram,
-        best,
-        config.allele_min,
-        config.allele_max,
-        min_allele_reads=config.min_allele_reads,
-    )
     reasons: list[str] = []
     warnings: list[str] = []
     if data.selected_sites < config.min_sites:
@@ -259,8 +247,6 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
     ))
     if not all(fit.converged for fit in fits.values()):
         reasons.append("MODEL_NOT_CONVERGED")
-    if not math.isfinite(fit_js) or fit_js > config.max_fit_js:
-        warnings.append("POOR_THEORETICAL_FIT")
 
     predicted = "UNCERTAIN" if reasons else PREDICTION_LABELS[best.ploidy]
     qc_status = "FAIL" if reasons else ("WARNING" if warnings else "PASS")
@@ -281,12 +267,9 @@ def run_ploidy_model(config: PloidyModelConfig) -> dict[str, Path]:
         "bootstrap_planned": config.bootstrap_replicates,
         "bootstrap_valid": sum(votes.values()),
         "bootstrap_unresolved": config.bootstrap_replicates - sum(votes.values()),
-        "bootstrap_support_valid": (votes.get(best.ploidy, 0) / sum(votes.values())
-                                    if votes else None),
         "delta_bic": delta_bic,
         "selected_sites": data.selected_sites,
         "available_sites": data.available_sites,
-        "fit_js_divergence": fit_js,
         "blocks": len(data.block_histograms),
         "informative_chromosomes": informative_chromosomes,
         "chromosome_agreement": chromosome_agreement,
@@ -577,43 +560,6 @@ def truncated_mixture_log_likelihood(
     stacked = np.vstack(component_logs)
     mixture = logsumexp(stacked + np.log(weights)[:, None], axis=0)
     return float(np.dot(frequency, mixture))
-
-
-def theoretical_fit_js_divergence(
-    histogram: Counter[tuple[int, int]],
-    fit: ModelFit,
-    allele_min: float,
-    allele_max: float,
-    bin_width: float = DEFAULT_FIT_BIN_WIDTH,
-    min_allele_reads: int = MIN_ALLELE_READS,
-) -> float:
-    """Jensen-Shannon divergence between observed and fitted minor-BAF shapes.
-
-    The posterior predictive distribution uses the observed depth distribution,
-    the fitted rho and the same discrete truncation as the likelihood.  This
-    makes the QC statistic sensitive to a genuinely wrong peak shape without
-    confusing finite read depth with model failure.
-    """
-
-    observed, predicted, _ = fitted_frequency_profile(
-        histogram, fit, allele_min, allele_max, min_allele_reads, bin_width)
-    observed = np.asarray(observed)
-    predicted = np.asarray(predicted)
-    if observed.sum() == 0 or predicted.sum() == 0:
-        return math.inf
-
-    middle = (observed + predicted) / 2
-    observed_mask = observed > 0
-    predicted_mask = predicted > 0
-    divergence = 0.5 * (
-        np.sum(observed[observed_mask] * np.log2(
-            observed[observed_mask] / middle[observed_mask]
-        ))
-        + np.sum(predicted[predicted_mask] * np.log2(
-            predicted[predicted_mask] / middle[predicted_mask]
-        ))
-    )
-    return float(divergence)
 
 
 def fitted_frequency_profile(histogram, fit, allele_min, allele_max,
@@ -1175,7 +1121,7 @@ def write_result(
         handle.write(
             "sample\tpredicted_ploidy\tbest_model\tbest_hypothesis\t"
             "bootstrap_support\tdelta_bic\tselected_sites\tavailable_sites\t"
-            "fit_js_divergence\tblocks\tinformative_chromosomes\t"
+            "blocks\tinformative_chromosomes\t"
             "chromosome_agreement\tsensitivity_best_hypothesis\t"
             "bootstrap_2x\tbootstrap_3x\t"
             "bootstrap_4x\tqc_status\tuncertainty_reasons\twarnings\n"
@@ -1188,7 +1134,6 @@ def write_result(
             f"{float(result['bootstrap_support']):.6f}\t"
             f"{float(result['delta_bic']):.6f}\t{result['selected_sites']}\t"
             f"{result['available_sites']}\t"
-            f"{float(result['fit_js_divergence']):.6f}\t"
             f"{result['blocks']}\t"
             f"{result['informative_chromosomes']}\t"
             f"{float(result['chromosome_agreement']):.6f}\t"
@@ -1245,7 +1190,6 @@ def _signature(
         "rho_max": config.rho_max,
         "tetraploid_a_min": config.tetraploid_a_min,
         "sensitivity_a_min": config.sensitivity_a_min,
-        "max_fit_js": config.max_fit_js,
         "block_size": config.block_size,
         "bootstrap_replicates": config.bootstrap_replicates,
         "bootstrap_support": config.bootstrap_support,

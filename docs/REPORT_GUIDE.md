@@ -4,9 +4,9 @@
 
 [Main documentation](../README.md) · [Command-line reference](CLI.md)
 
-Open `report.html` in a browser; it works offline. The report, plot labels, logs and machine-readable identifiers use English. This guide provides the same explanations in English and Chinese. Read `result.tsv` for downstream analysis and `details/run.json` for complete diagnostic values.
+The result report is `report.html`. Read `result.tsv` for downstream analysis and `details/run.json` for complete diagnostic values.
 
-## Start with the result
+## result.tsv result file
 
 | Label | Meaning |
 |---|---|
@@ -20,38 +20,35 @@ Open `report.html` in a browser; it works offline. The report, plot labels, logs
 | Not calculated / NOT_CALCULATED | The metric was not calculated; do not interpret it as zero |
 | Not assessable | Insufficient evidence to evaluate the metric, such as no informative chromosomes |
 
-The main TSV contains `sample`, `predicted_ploidy`, `status`, `selected_sites`, `delta_bic` and `analyzed_region_mb`. The batch TSV adds `result_file`. Missing values are `NA`; non-finite JSON numbers are `null`. Reasons and warnings are under `result` in the sample's `details/run.json`.
+The main TSV contains `sample`, `predicted_ploidy`, `status`, `selected_sites`, `delta_bic` and `analyzed_region_mb`. The batch TSV adds `result_file`. Reasons and warnings are under `result` in the sample's `details/run.json`.
 
-## Decision requirements
+## Decision requirements and supporting diagnostics
 
-| Report label | Requirement |
-|---|---|
-| Fitting SNPs | At least 25,000 SNPs used in fitting |
-| BIC separation | Second-best BIC minus best BIC at least 10 |
-| Main-model convergence | All three main models (2x, 3x, 4x) converged |
-| PASS / FAIL | The requirement passed / failed |
+Only the three decision requirements determine the ploidy call. Bootstrap stability and Chromosome consistency are displayed for diagnostic interpretation.
 
-The analysis expands from about 20 Mb to 50 Mb and then 100 Mb when the requirements fail, subject to available regions. Runtime failures differ from inconclusive analyses. None of the diagnostic warnings below adds another decision gate.
+| Role | Report label | Requirement or interpretation |
+|---|---|---|
+| Decision requirement | Fitting SNPs | At least 25,000 SNPs used in fitting |
+| Decision requirement | BIC separation | Second-best BIC minus best BIC at least 10 |
+| Decision requirement | Main-model convergence | All three main models (2x, 3x, 4x) converged |
+| Supporting diagnostic | Bootstrap stability | Agreement with the global candidate across planned block-bootstrap replicates; warning below 0.85 |
+| Supporting diagnostic | Chromosome consistency | Number of informative reference sequences and their agreement with the global candidate; warning for fewer than 3 sequences or agreement below 70% |
 
-## Diagnostic evidence
+Decision requirements use `PASS / FAIL`; supporting diagnostics use `CONSISTENT / WARNING` to indicate whether diagnostic thresholds are met or need attention. Diagnostics do not veto the call.
+The analysis expands from about 20 Mb to 50 Mb and then 100 Mb when decision requirements fail, subject to available regions. Runtime failures differ from inconclusive analyses.
 
-| Report label | Interpretation |
-|---|---|
-| Bootstrap stability | Agreement with the global candidate across the planned block-bootstrap replicates; unresolved replicates remain in the denominator |
-| Valid replicates | Resolved bootstrap replicates relative to the planned count |
-| Chromosome consistency | Number of informative reference sequences and their agreement with the global candidate |
-| Fit shape (JS divergence) | Difference between observed and fitted distribution shapes; lower means closer agreement |
-| WARNING | A diagnostic threshold was not met; it does not veto the call |
+Bootstrap support uses all planned replicates as its denominator. Replicates without valid model results do not vote but remain in the denominator; support is not the probability that a call is correct.
+A reference sequence is informative with at least 200 fitting SNPs, all three models converged with finite BIC, and delta BIC at least 10.
+No informative sequences means agreement cannot be assessed, not 0% agreement.
+Convergence means optimization reached its stopping criterion, and minimum BIC identifies the relative best candidate. Neither guarantees a good absolute fit; inspect the distributions below for differences between observations and models.
 
-Bootstrap support is not the probability that a call is correct. A reference sequence is informative with at least 200 fitting SNPs, converged models with finite BIC and delta BIC at least 10. No informative sequences means agreement cannot be assessed, not 0% agreement.
-
-## Three-row evidence figure
+## Observed and model-fitted distributions
 
 Each row shows one candidate (2x, 3x, 4x) using the same fitting SNPs, bins and axis scales.
 
 | Plot label | Meaning |
 |---|---|
-| Observed and fitted distributions | Comparison of observed site frequencies with model predictions |
+| Observed and model-fitted distributions | Comparison of observed site frequencies with model predictions |
 | Observed | Gray observed distribution |
 | Fitted model | Colored fitted distribution |
 | Minor allele fraction | Minor allele count divided by the sum of the two leading allele counts |
@@ -82,7 +79,6 @@ Figure ΔBIC values differ from the single TSV `delta_bic`, which compares the b
 | LOW_BOOTSTRAP_SUPPORT | Agreement below 0.85 across 100 planned block-bootstrap replicates |
 | INSUFFICIENT_CHROMOSOME_EVIDENCE | Fewer than 3 informative reference sequences |
 | CHROMOSOME_HETEROGENEITY | Fewer than 70% of informative reference sequences support the global candidate |
-| POOR_THEORETICAL_FIT | JS divergence exceeds 0.05 or cannot be calculated as a finite value |
 
 ### Additional diagnostic warnings
 
@@ -113,7 +109,7 @@ Batch counts describe predictions, not accuracy. Click a sample name to open its
 
 The main fit uses 25,000–100,000 SNPs. Above the maximum, deterministic sampling
 allocates quotas proportional to chromosome site counts. Analyzed region size
-is reported in Mb. Output schema is 3; old result directories must not be reused.
+is reported in Mb. Output schema is 4; old result directories must not be reused. Existing reference assets remain usable with `call --assets`.
 
 `details/run.json` records input identities, requested and actual settings,
 random seed, stage summaries, model fits, diagnostics and plot data.

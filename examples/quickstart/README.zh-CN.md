@@ -8,21 +8,21 @@
 conda activate mapploid
 ```
 
-需要 Python 3.10+、NumPy、SciPy、pysam、matplotlib 和 SAMtools；真实参考基因组的准备还需要 GenMap。首次安装可在本版本目录执行 `python -m pip install .`。
+需要 Python 3.10+、NumPy、SciPy、pysam、matplotlib、SAMtools 和 GenMap。首次安装可在本版本目录执行 `python -m pip install .`。
 
-## 1. 一键测试（约半分钟，无需下载）
+## 1. 一键测试（无需下载）
 
 ```bash
 python examples/quickstart/run.py
 ```
 
 脚本依次生成小型数据、准备参考区域、判定倍性，并打印每一步对应的命令。
-预期看到 `Quickstart passed: CALLED 3x`，拟合位点数为 **35,255**。
-本次实测首次运行 12.3 秒（此前为 24 秒）；复用通常约 1 秒，耗时因机器而异。
+预期看到 `Quickstart passed: CALLED 3x`。
+耗时因机器而异；重复运行可复用已完成的结果。
 
 运行样例后，在本地 `examples/quickstart/` 下打开以下文件：
 
-- 打开样例报告 (`output/result/report.html`)：查看倍性结果和三行拟合图。
+- 打开样例报告 (`output/result/report.html`)：查看倍性结果和观测与理论拟合分布图。
 - 主结果表 (`output/result/result.tsv`)：六列，可直接用于后续分析。
 - PDF (`output/result/figures/evidence.pdf`) / PNG (`output/result/figures/evidence.png`)：可导出的图，PNG 为 300 dpi。
 - 详细记录 (`output/result/details/run.json`)：参数、诊断原因和警告。
@@ -33,7 +33,7 @@ python examples/quickstart/run.py
 python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 ```
 
-样例是 36 kb 的人工参考序列和 30x 合成 BAM；提供了人工 mappability 分数，因此不运行 GenMap。它用于验证软件流程，不能用于评价生物学准确率。判定使用默认过滤、25,000 位点门槛和 100 次 bootstrap；小参考可能出现 `TOO_FEW_BLOCKS` 等诊断警告。
+样例使用固定种子生成 36 kb 随机参考序列和与之匹配的 30x 合成 BAM，并实际调用 GenMap 计算 mappability。BAM 由脚本直接构造，不包含真实测序或比对过程。它用于验证软件流程，不能用于评价生物学准确率。判定使用默认过滤、25,000 位点门槛和 100 次 bootstrap；小参考可能出现 `TOO_FEW_BLOCKS` 等诊断警告。
 
 ## 2. 学会标准流程：准备一次参考 → 分析样本 → 查看结果
 
@@ -97,10 +97,9 @@ python mapploid call --bam-list bams.txt --assets reference_assets --out batch_r
 一键测试后，下面两条命令可以单独执行，帮助理解 `prepare --out` 与 `call --assets` 的关系（会复用已有结果）：
 
 ```bash
-python mapploid prepare --reference examples/quickstart/output/inputs/reference.fa --kmer 50 --threads 1 --genmap-bedgraph examples/quickstart/output/inputs/scores.bg --out examples/quickstart/output/assets
+python mapploid prepare --reference examples/quickstart/output/inputs/reference.fa --kmer 50 --threads 1 --out examples/quickstart/output/assets
 python mapploid call --bam examples/quickstart/output/inputs/synthetic_3x.bam --assets examples/quickstart/output/assets --out examples/quickstart/output/result --export-figures
 ```
 
-这里的 `--genmap-bedgraph` 只用于提供样例已有的分数。真实数据通常使用上面的标准 `prepare` 命令自行计算。
 
 进一步阅读：[命令行参考](../../docs/CLI.zh-CN.md) · [报告阅读指南](../../docs/REPORT_GUIDE.zh-CN.md)。

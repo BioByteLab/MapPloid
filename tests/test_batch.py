@@ -1,3 +1,4 @@
+from genmap_fixture import mock_genmap
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -43,7 +44,7 @@ class BamListTests(unittest.TestCase):
             with self.subTest(flags=flags),redirect_stderr(StringIO()),self.assertRaises(SystemExit) as caught:
                 main(base+flags)
             self.assertEqual(caught.exception.code,2)
-        self.assertEqual(__version__,'0.10.4')
+        self.assertEqual(__version__,'0.10.5')
 
     def test_invalid_batch_filters_fail_before_opening_list(self):
         with TemporaryDirectory() as temporary:
@@ -59,8 +60,9 @@ class BatchIntegrationTests(unittest.TestCase):
         self.temporary=TemporaryDirectory();self.root=Path(self.temporary.name)
         ref=self.root/'ref.fa';ref.write_text('>chr1\n'+'A'*2000+'\n')
         bg=self.root/'scores.bg';bg.write_text('chr1\t0\t1951\t1\n')
+        self.enterContext(mock_genmap(bg))
         self.assets=self.root/'assets'
-        prepare(PrepareConfig(ref,self.assets,50,1,genmap_bedgraph=bg,min_region_length=300))
+        prepare(PrepareConfig(ref,self.assets,50,1,min_region_length=300))
         self.listing=self.root/'bams.txt';self.output=self.root/'batch'
 
     def tearDown(self):self.temporary.cleanup()
@@ -128,8 +130,9 @@ class BatchIntegrationTests(unittest.TestCase):
         import numpy as np
         ref=self.root/'three.fa';ref.write_text(''.join(f'>chr{i}\n'+ 'A'*12000+'\n' for i in range(1,4)))
         scores=self.root/'three.bg';scores.write_text(''.join(f'chr{i}\t0\t11951\t1\n' for i in range(1,4)))
+        self.enterContext(mock_genmap(scores))
         assets=self.root/'three-assets'
-        prepare(PrepareConfig(ref,assets,50,1,genmap_bedgraph=scores))
+        prepare(PrepareConfig(ref,assets,50,1))
         header={'HD':{'VN':'1.6','SO':'coordinate'},'SQ':[{'SN':f'chr{i}','LN':12000} for i in range(1,4)]}
         rng=np.random.default_rng(20261006)
         covered=self.root/'triploid.bam'

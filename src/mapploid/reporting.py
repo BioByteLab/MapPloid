@@ -7,12 +7,12 @@ import math
 from pathlib import Path
 import uuid
 
-OUTPUT_SCHEMA = 3
+OUTPUT_SCHEMA = 4
 RESULT_FIELDS = ("sample", "predicted_ploidy", "status", "selected_sites", "delta_bic",
                  "analyzed_region_mb")
 PRIMARY_WARNINGS = {
     "LOW_BOOTSTRAP_SUPPORT", "INSUFFICIENT_CHROMOSOME_EVIDENCE",
-    "CHROMOSOME_HETEROGENEITY", "POOR_THEORETICAL_FIT",
+    "CHROMOSOME_HETEROGENEITY",
 }
 MESSAGES = {
     "LOW_SITE_COUNT": "Too few fitting SNPs. Check coverage, retained-site counts and usable reference regions.",
@@ -24,7 +24,6 @@ MESSAGES = {
     "LOW_BOOTSTRAP_SUPPORT": "The global candidate was not consistently selected across block-bootstrap replicates.",
     "INSUFFICIENT_CHROMOSOME_EVIDENCE": "Fewer than three reference sequences provided informative chromosome-level fits.",
     "CHROMOSOME_HETEROGENEITY": "Fewer than 70% of informative reference sequences supported the global candidate.",
-    "POOR_THEORETICAL_FIT": "The observed allele-frequency shape is poorly explained by the best model, or fit quality could not be calculated.",
     "TOO_FEW_BLOCKS": "Fewer than five occupied genomic blocks are available for resampling.",
     "RHO_AT_BOUNDARY": "The fitted dispersion parameter is close to an allowed boundary.",
     "A_AT_BOUNDARY": "The tetraploid outer-peak weight is close to its lower bound.",
@@ -112,21 +111,18 @@ def diagnostics(stage, settings):
         ["Main-model convergence", "; ".join(convergence) or "Not calculated", "All three models",
          ("PASS" if all(fits[str(p)].get("converged") for p in (2, 3, 4)) else "FAIL") if computed else "NOT_CALCULATED"],
     ]
-    planned, valid = e.get("bootstrap_planned"), e.get("bootstrap_valid")
+    planned = e.get("bootstrap_planned")
     support = e.get("bootstrap_support")
     boot = f"{float(support):.1%}" if planned and finite(support) else "Not calculated"
-    reps = f"{valid} / {planned} valid replicates" if planned is not None else "Not calculated"
+    boot_context = f"Agreement at least {settings.get('bootstrap_support', 0.85):.0%}; all planned replicates"
     chromosomes = e.get("informative_chromosomes", 0)
     agreement = e.get("chromosome_agreement")
     chrom = f"{float(agreement):.1%}" if chromosomes and finite(agreement) else "Not assessable"
-    js = e.get("fit_js_divergence")
     w = set(flags(e.get("warnings")))
     rows = [
-        ["Bootstrap stability", boot, reps, "WARNING" if "LOW_BOOTSTRAP_SUPPORT" in w else ("PASS" if planned else "NOT_CALCULATED")],
+        ["Bootstrap stability", boot, boot_context, "WARNING" if "LOW_BOOTSTRAP_SUPPORT" in w else ("CONSISTENT" if planned and finite(support) else "NOT_CALCULATED")],
         ["Chromosome consistency", f"{chromosomes} informative; {chrom}", "At least 3 informative; agreement at least 70%",
-         "WARNING" if w & {"INSUFFICIENT_CHROMOSOME_EVIDENCE", "CHROMOSOME_HETEROGENEITY"} else ("PASS" if computed else "NOT_CALCULATED")],
-        ["Fit shape (JS divergence)", num(js, 4), "At most 0.05",
-         "WARNING" if "POOR_THEORETICAL_FIT" in w else ("PASS" if finite(js) else "NOT_CALCULATED")],
+         "WARNING" if w & {"INSUFFICIENT_CHROMOSOME_EVIDENCE", "CHROMOSOME_HETEROGENEITY"} else ("CONSISTENT" if computed and chromosomes and finite(agreement) else "NOT_ASSESSABLE")],
     ]
     return gates, rows
 
@@ -154,7 +150,7 @@ def evidence_figure(stage, export_dir=None):
                          "pdf.fonttype": 42, "ps.fonttype": 42, "font.family": "DejaVu Sans"}):
         fig = Figure(figsize=(6.2, 7.2), layout="constrained")
         axes = fig.subplots(3, 1, sharex=True, sharey=True)
-        top = fig.suptitle("Observed and fitted distributions", fontsize=14, fontweight="bold")
+        top = fig.suptitle("Observed and model-fitted distributions", fontsize=14, fontweight="bold")
         peak = max([float(observed.max()), *[max(values) * 100 for values in curves.values()]])
         for ax, ploidy in zip(axes, (2, 3, 4)):
             key = str(ploidy)
@@ -224,13 +220,14 @@ def write_sample_report(root, record, export_figures=False):
         body += f'<div class="metric">{esc(label)}<strong>{esc(num(val))}</strong></div>'
     body += '</div></div>'
     if state != "FAILED":
-        body += '<section><h2>Decision requirements</h2>' + table(["Requirement", "Observed", "Threshold", "Result"], gates) + '</section>'
-        body += '<section><h2>Diagnostic evidence</h2><p class="muted">These diagnostics do not veto the ploidy call. Bootstrap support is resampling agreement, not the probability that the call is correct.</p>'
-        body += table(["Diagnostic", "Observed", "Context", "Result"], diagnostic_rows)
-        body += '</section>'
+        body += '<section><h2>Decision requirements and supporting diagnostics</h2>'
+        body += '<p class="muted">Only the three decision requirements determine the ploidy call. The two supporting diagnostics do not veto it. Bootstrap support is resampling agreement, not the probability that the call is correct.</p>'
+        combined = [["Decision requirement", *row] for row in gates]
+        combined += [["Supporting diagnostic", *row] for row in diagnostic_rows]
+        body += table(["Role", "Item", "Observed", "Criterion or context", "Result"], combined) + '</section>'
         svg, files = evidence_figure(stage, root / "figures" if export_figures else None)
         if svg:
-            body += '<section><h2>Allele-frequency and model evidence</h2>' + svg
+            body += '<section><h2>Observed and model-fitted distributions</h2>' + svg
             body += '<p class="muted">Frequency = minor count / sum of the two leading allele counts. All three rows use the same fitting SNPs and bins. Each model is shown with its own fitted parameters, the observed depth distribution and the same discrete truncation as the likelihood. No smoothing. ΔBIC is relative to the best model; BEST identifies the best candidate, not necessarily a definitive call.</p></section>'
     else:
         files = []
@@ -257,7 +254,7 @@ def write_sample_report(root, record, export_figures=False):
     if record.get("input_warnings"):
         body += '<h3>Input notices</h3>' + ''.join(f'<p>{esc(x)}</p>' for x in record["input_warnings"])
     body += '</details></section>'
-    body += '<footer>Output schema 3 · <a href="result.tsv">Result table</a> · <a href="details/run.json">Run record</a> · <a href="details/run.log">Run log</a>'
+    body += f'<footer>Output schema {OUTPUT_SCHEMA} · <a href="result.tsv">Result table</a> · <a href="details/run.json">Run record</a> · <a href="details/run.log">Run log</a>'
     if (root / "regions.bed").exists():
         body += ' · <a href="regions.bed">Analysis regions</a>'
     body += '</footer>'

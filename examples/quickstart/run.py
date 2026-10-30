@@ -18,14 +18,16 @@ from mapploid.cli import main
 
 
 def make_inputs(root):
-    """Toy reference, supplied toy mappability scores and coordinate-sorted BAM."""
+    """Deterministic random reference and coordinate-sorted synthetic 3x BAM."""
     root.mkdir(parents=True, exist_ok=True)
-    ref, scores, bam = root / "reference.fa", root / "scores.bg", root / "synthetic_3x.bam"
+    ref, bam = root / "reference.fa", root / "synthetic_3x.bam"
+    reference_rng = np.random.default_rng(20261030)
+    sequences = [reference_rng.choice(list("ACGT"), 12000) for _ in range(3)]
+    alternate = {"A": "C", "C": "G", "G": "T", "T": "A"}
     # Keep identities stable so the public pipeline can reuse completed results.
     if not ref.exists():
-        ref.write_text("".join(f">chr{i}\n" + "A" * 12000 + "\n" for i in range(1, 4)))
-    if not scores.exists():
-        scores.write_text("".join(f"chr{i}\t0\t11951\t1\n" for i in range(1, 4)))
+        ref.write_text("".join(f">chr{i+1}\n" + "".join(seq) + "\n"
+                               for i, seq in enumerate(sequences)))
     if not bam.exists():
         header = {"HD": {"VN": "1.6", "SO": "coordinate"},
                   "SQ": [{"SN": f"chr{i}", "LN": 12000} for i in range(1, 4)]}
@@ -33,17 +35,19 @@ def make_inputs(root):
         with pysam.AlignmentFile(str(bam), "wb", header=header) as handle:
             for chrom in range(3):
                 for start in range(0, 12000, 1000):
+                    bases = sequences[chrom][start:start + 1000]
+                    alternatives = np.array([alternate[base] for base in bases])
                     for j in range(30):
                         read = pysam.AlignedSegment()
                         read.query_name = f"{chrom}_{start}_{j}"
-                        read.query_sequence = "".join(np.where(rng.random(1000) < 1/3, "C", "A"))
+                        read.query_sequence = "".join(np.where(rng.random(1000) < 1/3, alternatives, bases))
                         read.flag, read.reference_id, read.reference_start = 0, chrom, start
                         read.mapping_quality, read.cigar = 60, [(0, 1000)]
                         read.query_qualities = pysam.qualitystring_to_array("I" * 1000)
                         handle.write(read)
     if not Path(str(bam) + ".bai").exists():
         pysam.index(str(bam))
-    return ref, scores, bam
+    return ref, bam
 
 
 def run():
@@ -53,10 +57,10 @@ def run():
     started = time.monotonic()
     root = args.out.resolve()
     print("[1/3] Create the small synthetic reference and indexed BAM (no downloads).", flush=True)
-    ref, scores, bam = make_inputs(root / "inputs")
+    ref, bam = make_inputs(root / "inputs")
     assets, result = root / "assets", root / "result"
     prepare_args = ["prepare", "--reference", str(ref), "--kmer", "50", "--threads", "1",
-                    "--genmap-bedgraph", str(scores), "--out", str(assets)]
+                    "--out", str(assets)]
     print("[2/3] Prepare reusable reference regions:", flush=True)
     print(shlex.join([sys.executable, str(ROOT / "mapploid"), *prepare_args]), flush=True)
     status = main(prepare_args)

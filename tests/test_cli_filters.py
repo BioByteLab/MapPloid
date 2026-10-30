@@ -1,3 +1,4 @@
+from genmap_fixture import mock_genmap
 from collections import Counter
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
@@ -44,9 +45,9 @@ class FilterModelTests(unittest.TestCase):
                         histogram = Counter({(n, x): probability * 1e6
                                              for x, probability in zip(retained, expected)})
                         fit = model.ModelFit(ploidy, 0, 0, .03, .7, True, 1)
-                        js = model.theoretical_fit_js_divergence(
+                        observed_profile, fitted_profile, _ = model.fitted_frequency_profile(
                             histogram, fit, lo, hi, min_allele_reads=mac)
-                        self.assertLess(abs(js), 1e-12)
+                        np.testing.assert_allclose(observed_profile, fitted_profile, atol=1e-12)
 
     def test_custom_mac_reaches_global_bootstrap_chromosome_and_sensitivity_fits(self):
         with TemporaryDirectory() as temporary:
@@ -119,9 +120,9 @@ class FilterCliIntegrationTests(unittest.TestCase):
             reference.write_text('>chr1\n'+'A'*2000+'\n')
             scores = root/'scores.bedgraph'
             scores.write_text('chr1\t0\t1951\t1\n')
+            self.enterContext(mock_genmap(scores))
             assets = root/'assets'
-            pipeline.prepare(pipeline.PrepareConfig(reference, assets, 50, 1,
-                                                    genmap_bedgraph=scores, min_region_length=300))
+            pipeline.prepare(pipeline.PrepareConfig(reference, assets, 50, 1, min_region_length=300))
             bam = root/'sample.bam'
             header = {'HD': {'VN': '1.6', 'SO': 'coordinate'},
                       'SQ': [{'SN': 'chr1', 'LN': 2000}]}
