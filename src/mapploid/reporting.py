@@ -4,6 +4,8 @@ import csv
 import html
 import io
 import math
+import re
+import textwrap
 from pathlib import Path
 import uuid
 
@@ -127,7 +129,7 @@ def diagnostics(stage, settings):
     return gates, rows
 
 def evidence_figure(stage, export_dir=None):
-    """One figure: observed and fitted distributions for 2x, 3x and 4x."""
+    """Combined distributions and chromosome support, with bounded page size."""
     model = stage.get("model", {})
     fits = model.get("fits", {})
     profile = model.get("frequency_profile", {})
@@ -145,56 +147,182 @@ def evidence_figure(stage, export_dir=None):
     valid_bics = {p: float(f["bic"]) for p, f in fits.items() if finite(f.get("bic"))}
     best = min(valid_bics, key=valid_bics.get) if valid_bics else None
     colors = {2: "#597181", 3: "#d79246", 4: "#82475f"}
-    files = []
+    files, images = [], []
+    rows = chromosome_rows(stage)
+    pages = max(1, (len(rows) + 23) // 24)
     with mpl.rc_context({"font.size": 10, "svg.fonttype": "none", "svg.hashsalt": "MapPloid",
                          "pdf.fonttype": 42, "ps.fonttype": 42, "font.family": "DejaVu Sans"}):
-        fig = Figure(figsize=(6.2, 7.2), layout="constrained")
-        axes = fig.subplots(3, 1, sharex=True, sharey=True)
-        top = fig.suptitle("Observed and model-fitted distributions", fontsize=14, fontweight="bold")
-        peak = max([float(observed.max()), *[max(values) * 100 for values in curves.values()]])
-        for ax, ploidy in zip(axes, (2, 3, 4)):
-            key = str(ploidy)
-            color = colors[ploidy]
-            ax.stairs(observed, edges, fill=True, color="#c7d1d8", linewidth=0, label="Observed")
-            predicted = curves.get(key)
-            if predicted is not None:
-                ax.stairs(np.asarray(predicted) * 100, edges, color=color, linewidth=1.5, label="Fitted model")
-            delta = valid_bics[key] - valid_bics[best] if key in valid_bics and best is not None else None
-            title = f"{ploidy}x model   ΔBIC = {delta:,.1f}" if delta is not None else f"{ploidy}x model   ΔBIC = NA"
-            if key == best:
-                title += "   BEST"
-            if not fits.get(key, {}).get("converged"):
-                title += "   (not converged)"
-            ax.set_title(title, loc="left", color=color, fontsize=11, pad=9)
-            ax.set_ylim(0, max(peak * 1.15, 1))
-            ax.set_xlim(edges[0], edges[-1])
-            ax.spines[["top", "right"]].set_visible(False)
-        axes[0].legend(handles=[Patch(facecolor="#c7d1d8", label="Observed"),
-                                Line2D([0], [0], color="#597181", linewidth=1.5, label="Fitted model")],
-                       loc="lower left", bbox_to_anchor=(0, 1.18), ncol=2, frameon=False,
-                       fontsize=9, borderaxespad=0)
-        ticks = [(edges[0], f"{edges[0]:.2f}"), (.25, "1/4"), (1/3, "1/3"), (.40, "0.40"), (.5, "1/2")]
-        ticks = [(x, label) for x, label in ticks if edges[0] <= x <= edges[-1]]
-        # A custom lower bound may coincide with one of the standard tick marks.
-        ticks = list(dict(ticks).items())
-        axes[-1].set_xticks([x for x, _ in ticks], [label for _, label in ticks])
-        axes[-1].set_xlabel("Minor allele fraction")
-        fig.supylabel("Sites (%)", fontsize=11)
-        svg = io.StringIO()
-        fig.savefig(svg, format="svg", metadata={"Date": None})
-        image = svg.getvalue()
-        image = image[image.index("<svg"):]
-        if export_dir:
-            export_dir = Path(export_dir)
-            export_dir.mkdir(parents=True, exist_ok=True)
-            for fmt in ("pdf", "png"):
-                p = export_dir / ("evidence." + fmt)
-                tmp = p.with_name(p.name + ".tmp")
-                fig.savefig(tmp, format=fmt, dpi=300,
-                            metadata={"CreationDate": None} if fmt == "pdf" else None)
-                tmp.replace(p)
-                files.append(p)
-    return image, files
+        for page_index in range(pages):
+            subset = rows[page_index * 24:(page_index + 1) * 24]
+            extra_height = chromosome_matrix_height(subset) if subset else 0
+            fig = Figure(figsize=(6.2, 7.2 + extra_height), layout="constrained")
+            groups = [subset[i:i + 12] for i in range(0, len(subset), 12)]
+            grid = fig.add_gridspec(3 + len(groups), 1, height_ratios=[1, 1, 1] + [.5] * len(groups))
+            axes = [fig.add_subplot(grid[0])]
+            axes += [fig.add_subplot(grid[i], sharex=axes[0], sharey=axes[0]) for i in (1, 2)]
+            for ax in axes[:2]:
+                ax.tick_params(labelbottom=False)
+            fig.suptitle("Observed and model-fitted distributions", fontsize=14, fontweight="bold")
+            peak = max([float(observed.max()), *[max(values) * 100 for values in curves.values()]])
+            for ax, ploidy in zip(axes, (2, 3, 4)):
+                key = str(ploidy)
+                color = colors[ploidy]
+                ax.stairs(observed, edges, fill=True, color="#c7d1d8", linewidth=0, label="Observed")
+                predicted = curves.get(key)
+                if predicted is not None:
+                    ax.stairs(np.asarray(predicted) * 100, edges, color=color, linewidth=1.5, label="Fitted model")
+                delta = valid_bics[key] - valid_bics[best] if key in valid_bics and best is not None else None
+                title = f"{ploidy}x model   ΔBIC = {delta:,.1f}" if delta is not None else f"{ploidy}x model   ΔBIC = NA"
+                if key == best:
+                    title += "   BEST"
+                if not fits.get(key, {}).get("converged"):
+                    title += "   (not converged)"
+                ax.set_title(title, loc="left", color=color, fontsize=11, pad=9)
+                ax.set_ylim(0, max(peak * 1.15, 1))
+                ax.set_xlim(edges[0], edges[-1])
+                ax.spines[["top", "right"]].set_visible(False)
+            axes[0].legend(handles=[Patch(facecolor="#c7d1d8", label="Observed"),
+                                    Line2D([0], [0], color="#597181", linewidth=1.5, label="Fitted model")],
+                           loc="lower left", bbox_to_anchor=(0, 1.18), ncol=2, frameon=False,
+                           fontsize=9, borderaxespad=0)
+            ticks = [(edges[0], f"{edges[0]:.2f}"), (.25, "1/4"), (1/3, "1/3"), (.40, "0.40"), (.5, "1/2")]
+            ticks = [(x, label) for x, label in ticks if edges[0] <= x <= edges[-1]]
+            # A custom lower bound may coincide with one of the standard tick marks.
+            ticks = list(dict(ticks).items())
+            axes[-1].set_xticks([x for x, _ in ticks], [label for _, label in ticks])
+            axes[-1].set_xlabel("Minor allele fraction")
+            axes[1].set_ylabel("Sites (%)", fontsize=11)
+            for group_index, group in enumerate(groups):
+                matrix_ax = fig.add_subplot(grid[3 + group_index])
+                draw_chromosome_matrix(matrix_ax, group)
+                if group_index == 0:
+                    matrix_title = "Chromosome model support"
+                    if pages > 1:
+                        matrix_title += f" ({page_index + 1}/{pages})"
+                    matrix_ax.set_title(matrix_title, fontsize=11, fontweight="bold", pad=14)
+            if subset:
+                chromosome_matrix_legend(fig)
+            image, paths = save_report_figure(fig, export_dir,
+                "evidence" if page_index == 0 else f"evidence_{page_index + 1:03d}")
+            images.append(image)
+            files.extend(paths)
+    return "".join(images), files
+
+
+def chromosome_rows(stage):
+    """Natural ordering, shared by the standalone and combined matrices."""
+    def natural_key(row):
+        return [(1, int(part)) if part.isdigit() else (0, part.casefold())
+                for part in re.split(r"(\d+)", str(row.get("chrom", "")))]
+    return sorted(stage.get("chromosomes", []), key=natural_key)
+
+
+def matrix_labels(rows):
+    width = min(12, max(4, 60 // max(1, len(rows))))
+    return [textwrap.fill(str(row.get("chrom", "NA")), width=width) for row in rows]
+
+
+def draw_chromosome_matrix(ax, rows):
+    """Columns are sequences; rows are models. No vote is invented for unresolved fits."""
+    from matplotlib.patches import Rectangle
+    colors = {"2x": "#597181", "3x": "#d79246", "4x": "#82475f"}
+    ax.set_facecolor("#f8fafb")
+    for column, row in enumerate(rows):
+        candidate, status = row.get("best_hypothesis"), row.get("status")
+        if status in ("PASS", "LOW_DELTA_BIC") and candidate in colors:
+            model_row = ("2x", "3x", "4x").index(candidate)
+            cell = Rectangle((column + .035, model_row + .055), .93, .89,
+                             facecolor=colors[candidate] if status == "PASS" else "none",
+                             edgecolor=colors[candidate], linewidth=.8,
+                             hatch=None if status == "PASS" else "////")
+        else:
+            cell = Rectangle((column, 0), 1, 3, facecolor="#e5e9ec", edgecolor="none")
+            ax.text(column + .5, 1.5, "NA", ha="center", va="center", fontsize=8, color="#65747d")
+        ax.add_patch(cell)
+    ax.set_xlim(0, len(rows))
+    ax.set_ylim(3, 0)
+    ax.set_xticks([i + .5 for i in range(len(rows))], matrix_labels(rows))
+    ax.xaxis.tick_top()
+    ax.tick_params(axis="x", length=0, pad=6, labelsize=8)
+    for label in ax.get_xticklabels():
+        label.set_fontfamily("DejaVu Sans Mono")
+    ax.set_yticks([.5, 1.5, 2.5], ["2x", "3x", "4x"])
+    ax.tick_params(axis="y", length=0, pad=8, labelsize=9)
+    for label, color in zip(ax.get_yticklabels(), colors.values()):
+        label.set_color(color)
+    ax.vlines(range(1, len(rows)), 0, 3, color="#c5cfd5", linewidth=.65)
+    ax.hlines([1, 2], 0, len(rows), color="#c5cfd5", linewidth=.65)
+    for spine in ax.spines.values():
+        spine.set_color("#9baab3")
+        spine.set_linewidth(.75)
+
+
+def chromosome_matrix_height(rows):
+    groups = [rows[i:i + 12] for i in range(0, len(rows), 12)]
+    return .8 + sum(1.0 + .12 * max(len(label.splitlines()) for label in matrix_labels(group))
+                    for group in groups)
+
+
+def chromosome_matrix_panel(figure, rows, page_index=0, pages=1):
+    groups = [rows[i:i + 12] for i in range(0, len(rows), 12)]
+    axes = figure.subplots(len(groups), 1, squeeze=False).ravel()
+    title = "Chromosome model support"
+    if pages > 1:
+        title += f" ({page_index + 1}/{pages})"
+    figure.suptitle(title, fontsize=11, fontweight="bold")
+    for ax, group in zip(axes, groups):
+        draw_chromosome_matrix(ax, group)
+    chromosome_matrix_legend(figure)
+
+
+def chromosome_matrix_legend(figure):
+    from matplotlib.patches import Patch
+    figure.legend(handles=[Patch(facecolor="#657b88", label="Supported"),
+                           Patch(facecolor="none", edgecolor="#657b88", hatch="////", label="Low separation"),
+                           Patch(facecolor="#e5e9ec", label="NA: insufficient / unresolved")],
+                  loc="outside lower center", ncol=3, frameon=False, fontsize=7,
+                  handlelength=1.5, columnspacing=1.3)
+
+
+def chromosome_support_figures(stage, export_dir=None):
+    """Optional standalone export of the same compact matrix used below the distributions."""
+    rows = chromosome_rows(stage)
+    if not rows:
+        return [], []
+    import matplotlib as mpl
+    from matplotlib.figure import Figure
+    images, files = [], []
+    pages = (len(rows) + 23) // 24
+    with mpl.rc_context({"font.size": 9, "svg.fonttype": "none", "svg.hashsalt": "MapPloid-chromosomes",
+                         "pdf.fonttype": 42, "ps.fonttype": 42, "font.family": "DejaVu Sans"}):
+        for page_index in range(pages):
+            subset = rows[page_index * 24:(page_index + 1) * 24]
+            fig = Figure(figsize=(6.2, chromosome_matrix_height(subset)), layout="constrained")
+            chromosome_matrix_panel(fig, subset, page_index, pages)
+            image, paths = save_report_figure(fig, export_dir,
+                "chromosome_support" + (f"_{page_index + 1:03d}" if pages > 1 else ""))
+            images.append(image)
+            files.extend(paths)
+    return images, files
+
+
+def save_report_figure(fig, export_dir, stem):
+    svg = io.StringIO()
+    fig.savefig(svg, format="svg", metadata={"Date": None})
+    content = svg.getvalue()
+    files = []
+    if export_dir:
+        destination = Path(export_dir)
+        destination.mkdir(parents=True, exist_ok=True)
+        for fmt in ("pdf", "png"):
+            path = destination / f"{stem}.{fmt}"
+            temporary = path.with_name(path.name + ".tmp")
+            fig.savefig(temporary, format=fmt, dpi=300,
+                        metadata={"CreationDate": None} if fmt == "pdf" else None)
+            temporary.replace(path)
+            files.append(path)
+    return content[content.index("<svg"):], files
+
 
 def write_sample_report(root, record, export_figures=False):
     root = Path(root)
@@ -229,6 +357,8 @@ def write_sample_report(root, record, export_figures=False):
         if svg:
             body += '<section><h2>Observed and model-fitted distributions</h2>' + svg
             body += '<p class="muted">Frequency = minor count / sum of the two leading allele counts. All three rows use the same fitting SNPs and bins. Each model is shown with its own fitted parameters, the observed depth distribution and the same discrete truncation as the likelihood. No smoothing. ΔBIC is relative to the best model; BEST identifies the best candidate, not necessarily a definitive call.</p></section>'
+        if stage.get("chromosomes") and svg:
+            body += '<p class="muted">The lower matrix shows chromosome model support: filled cells indicate informative support; hatched cells indicate low BIC separation; gray NA columns indicate insufficient or unresolved evidence. Only sequences with fitting SNPs in the final stage are shown. These diagnostics do not change the global call.</p>'
     else:
         files = []
     technical = reasons + warnings

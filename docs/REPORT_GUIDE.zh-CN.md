@@ -64,6 +64,28 @@ Bootstrap 支持度以全部计划重复为分母，未得到有效模型结果�
 `--export-figures` 导出 PDF 和 300 dpi PNG；不导出独立 SVG，离线 HTML 内部仍嵌入矢量图。
 没有可用模型证据时不生成空图。
 
+## 染色体倍性模型支持图
+
+`Chromosome model support` 以矩阵形式放在三个分布面板下方，合并为一张图。染色体按列排列，并按自然顺序排序（chr1、chr2、…、chr10）；2x、3x、4x 按行排列，颜色与上方模型一致。拟合 SNP 数、ΔBIC 和各序列状态保留在报告的 **Detailed diagnostics → Reference-sequence fits** 表格中。
+
+| 色块 / 状态 | 含义 |
+|---|---|
+| 实色块 / Supported | 达到染色体诊断要求，支持色块所在行的倍性模型 |
+| 斜线块 / Low separation | 显示 BIC 最优候选，但模型区分不足，不计入染色体一致率的投票 |
+| 灰色整列 / NA | 拟合 SNP 不足、模型未全部收敛或 BIC 非有限，不能赋予明确支持 |
+
+默认染色体诊断要求为至少 200 个拟合 SNP、三个模型全部收敛且 BIC 有限、次优减最优 BIC 至少为 10。只展示最终分析阶段中含拟合 SNP 的参考序列；没有显示的序列未被评估。此诊断不改变全局倍性判定，也不单独构成染色体非整倍性的确认。
+
+HTML 自动嵌入合并图。`--export-figures` 导出 `figures/evidence.pdf` 和 `figures/evidence.png`（300 dpi）。每个矩阵区块最多 12 条序列，每页最多 24 条；额外页面重复上方分布面板，文件名为 `evidence_002`、`evidence_003` 等，不截断序列列表。长序列名自动换行。
+
+已完成的旧结果会被续跑机制直接复用，不会自动改写报告。如需从已有结果导出合并图，在版本目录运行：
+
+```bash
+python scripts/export_chromosome_support.py --run-json sample_result/details/run.json --out combined_figures --combined
+```
+
+省略 `--combined` 可单独导出支持矩阵，文件名为 `chromosome_support.pdf/png`（多页时为 `chromosome_support_001`、`_002` 等）。输出目录须为空或尚不存在；脚本读取单样本记录，不重新计数或拟合，也不改写原报告及完成标记。
+
 ## 原因及警告
 
 ### 不确定判定的原因

@@ -66,6 +66,8 @@ Repeat the same command to resume or reuse verified results.
 a runtime error. Add `--export-figures` for PDF/PNG, or `--keep-details` to retain
 intermediate data.
 
+Reports combine observed/model-fitted distributions with a chromosome support matrix underneath; `--export-figures` exports the combined figure as `evidence.pdf/png`.
+
 ## Documentation
 
 - [Quickstart and standard workflow](examples/quickstart/README.md)

@@ -64,6 +64,8 @@ mapploid call --bam-list bams.txt --assets reference_assets --out batch_results
 添加 `--export-figures` 导出 PDF/PNG，添加 `--keep-details` 保留中间数据。
 
 
+报告将观测与理论拟合分布图和下方的染色体支持矩阵合并展示；`--export-figures` 导出合并图 `evidence.pdf/png`。
+
 ## 文档
 
 - [快速入门与标准流程](examples/quickstart/README.zh-CN.md)

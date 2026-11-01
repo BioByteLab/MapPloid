@@ -2,6 +2,14 @@
 
 **English** | [简体中文](CHANGELOG.zh-CN.md)
 
+## Chromosome support figure — 2026-10-31
+
+- Add per-reference-sequence model support to v0.10.5 reports, distinguishing supported models, low separation, too few SNPs and unresolved fits.
+- Place chromosome columns and 2x/3x/4x rows in a compact matrix below the distributions, using matching model colors, hatched low-separation cells and gray NA columns.
+- Export the combined `evidence.pdf/png` with `--export-figures`; wrap long sequence names and paginate long sequence lists.
+- Export separately from an existing sample run record with `scripts/export_chromosome_support.py`, without refitting.
+- Global calls, model calculations, the main TSV and output schema are unchanged.
+
 ## 0.10.5 — 2026-10-30
 
 - Remove the external GenMap bedGraph input option and its implementation. Preparation runs GenMap and retains automatic resuming and reuse of generated scores.

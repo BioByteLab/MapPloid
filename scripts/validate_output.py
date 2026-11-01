@@ -62,6 +62,8 @@ def run():
     assert report.count("<td>Supporting diagnostic</td>") == 2
     assert "Valid replicates" not in report and "JS divergence" not in report
     assert "Observed and model-fitted distributions" in report
+    assert "Chromosome model support" in report
+    assert report.count("<svg") == 1
     model_result = record["stages"][-1]["model"]["result"]
     assert "bootstrap_valid" in model_result and "bootstrap_planned" in model_result
     assert "fit_js_divergence" not in model_result and "bootstrap_support_valid" not in model_result
@@ -74,10 +76,11 @@ def run():
     assert not (sample / "figures/evidence.svg").exists()
     from PIL import Image
     with Image.open(sample / "figures/evidence.png") as image:
-        assert image.format == "PNG" and image.size == (1860, 2160)
+        assert image.format == "PNG" and image.size == (1860, 2736)
         assert abs(image.info["dpi"][0] - 300) < 1
         image.verify()
-    tracked = [sample / "result.tsv", sample / "report.html", sample / "details/run.json"]
+    tracked = [sample / "result.tsv", sample / "report.html", sample / "details/run.json",
+               sample / "figures/evidence.pdf", sample / "figures/evidence.png"]
     stamps = {p: (p.stat().st_mtime_ns, hashlib.sha256(p.read_bytes()).hexdigest()) for p in tracked}
     assert main(args) == 1
     assert stamps == {p: (p.stat().st_mtime_ns, hashlib.sha256(p.read_bytes()).hexdigest()) for p in tracked}
@@ -89,7 +92,7 @@ def run():
         "batch_report": str(output / "report.html"), "tests": [
             "3x call", "UNCERTAIN no coverage", "FAILED missing input", "batch continuation",
             "six sample columns and seven batch columns", "compact cleanup", "normalized fitting profile",
-            "PDF and 300-dpi PNG export without SVG file", "completed reuse without rewriting", "no empty charts"
+            "Combined distribution and chromosome matrix exported as PDF and 300-dpi PNG", "completed reuse without rewriting", "no empty charts"
         ]}, indent=2) + "\n")
     print("Output smoke check passed:", output / "report.html")
 

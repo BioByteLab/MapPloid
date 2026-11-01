@@ -102,4 +102,6 @@ python mapploid call --bam examples/quickstart/output/inputs/synthetic_3x.bam --
 ```
 
 
+The report includes a chromosome support matrix below the model distributions, exported together as `figures/evidence.pdf` and `figures/evidence.png`. See the report guide for exporting from an existing result.
+
 Further reading: [command-line reference](../../docs/CLI.md) · [report guide](../../docs/REPORT_GUIDE.md).

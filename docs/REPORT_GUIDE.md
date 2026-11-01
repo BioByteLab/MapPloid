@@ -59,6 +59,28 @@ Each row shows one candidate (2x, 3x, 4x) using the same fitting SNPs, bins and 
 
 Figure ΔBIC values differ from the single TSV `delta_bic`, which compares the best two models. Model curves use each model's fitted parameters, observed depth distribution and the likelihood's discrete truncation; no smoothing is applied. `--export-figures` exports PDF and 300-dpi PNG. No standalone SVG is exported; offline HTML embeds vector markup internally. With no usable model evidence, no empty figure is generated.
 
+## Chromosome model support
+
+`Chromosome model support` is a matrix below the three distribution panels in the same figure. Columns are reference sequences in natural order (chr1, chr2, …, chr10); rows are 2x, 3x and 4x. Model colors match the distributions above. Fitting SNP counts, ΔBIC and individual statuses remain in the report's **Detailed diagnostics → Reference-sequence fits** table.
+
+| Cell / status | Meaning |
+|---|---|
+| Filled / Supported | Meets chromosome diagnostic requirements and supports the model in that row |
+| Hatched / Low separation | Shows the minimum-BIC candidate, but separation is insufficient; does not vote in chromosome consistency |
+| Gray column / NA | Too few fitting SNPs, models not all converged, or non-finite BIC; no resolved support |
+
+Default chromosome diagnostic requirements are at least 200 fitting SNPs, all three models converged with finite BIC, and second-best minus best BIC at least 10. Only sequences containing fitting SNPs in the final stage are shown; omitted sequences are not assessed. This diagnostic does not change the global call or independently confirm chromosomal aneuploidy.
+
+HTML embeds the combined figure automatically. `--export-figures` writes `figures/evidence.pdf` and `figures/evidence.png` (300 dpi). Each matrix block contains up to 12 sequences and each page up to 24. Additional pages repeat the distribution panels and use `evidence_002`, `evidence_003`, etc.; no sequences are truncated. Long names wrap automatically.
+
+Previously completed outputs are reused without rewriting their reports. To export the combined figure from an existing result, run from the version directory:
+
+```bash
+python scripts/export_chromosome_support.py --run-json sample_result/details/run.json --out combined_figures --combined
+```
+
+Omit `--combined` to export only the support matrix as `chromosome_support.pdf/png` (or `chromosome_support_001`, `_002`, etc. for multiple pages). The output directory must be new or empty. The script reads a sample record without recounting, refitting or modifying the original report and completion marker.
+
 ## Reasons and warnings
 
 ### Reasons for uncertainty

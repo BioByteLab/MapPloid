@@ -53,7 +53,7 @@ python mapploid call --bam-list bams.txt --assets reference_assets --out batch_r
 | --out DIR | Required | Single-sample output directory or batch summary directory |
 | --sample NAME | BAM filename without `.bam` | Single-sample name; not allowed with `--bam-list` |
 | --keep-details | Off by default | Retain stage tables and intermediate site data after completion |
-| --export-figures | Off by default | Export the report figure as PDF and 300-dpi PNG when model evidence is available |
+| --export-figures | Off by default | Export the combined distribution fits and lower chromosome support matrix as evidence.pdf/png (PDF and 300-dpi PNG) when evidence is available |
 
 Blank lines and lines starting with `#` in BAM lists are ignored. Relative paths resolve from the list's directory. BAM filenames must be distinct and samples must share a reference. Batch results are under `samples/SAMPLE/`; the batch TSV adds a `result_file` column.
 

@@ -102,4 +102,6 @@ python mapploid call --bam examples/quickstart/output/inputs/synthetic_3x.bam --
 ```
 
 
+报告在模型分布图下方展示染色体支持矩阵，合并导出为 `figures/evidence.pdf` 和 `figures/evidence.png`。已有结果的独立导出方法见报告阅读指南。
+
 进一步阅读：[命令行参考](../../docs/CLI.zh-CN.md) · [报告阅读指南](../../docs/REPORT_GUIDE.zh-CN.md)。

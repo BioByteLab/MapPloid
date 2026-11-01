@@ -53,7 +53,7 @@ python mapploid call --bam-list bams.txt --assets reference_assets --out batch_r
 | --out DIR | 必填 | 单样本输出目录或批量汇总目录 |
 | --sample NAME | 去掉 `.bam` 后缀的 BAM 文件名 | 单样本名称，不能与 `--bam-list` 一起使用 |
 | --keep-details | 默认关闭 | 完成后保留阶段表及中间位点数据 |
-| --export-figures | 默认关闭 | 有可用模型证据时，将报告图导出为 PDF 和 300 dpi PNG |
+| --export-figures | 默认关闭 | 有相应证据时，将分布拟合图及下方染色体支持矩阵合并导出为 evidence.pdf/png（PDF 和 300 dpi PNG） |
 
 BAM 列表忽略空行和以 `#` 开头的行，相对路径以列表文件所在目录为基准。
 BAM 文件名必须不同，且样本使用同一参考。批量单样本结果位于 `samples/SAMPLE/`，批量 TSV 增加 `result_file` 列。
