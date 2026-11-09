@@ -29,7 +29,7 @@ from .reference_mask import ReferenceMaskConfig, build_reference_mask
 class PrepareConfig:
     reference: Path
     output_dir: Path
-    kmer_length: int = 150
+    kmer_length: int = 100
     threads: int = 8
     exclude_beds: list[Path] = field(default_factory=list)
     genmap_executable: str = "genmap"
@@ -45,7 +45,7 @@ class CallConfig:
     samtools_executable: str = "samtools"
     allele_min: float = 0.15
     allele_max: float = 0.85
-    min_depth: int | None = None
+    min_depth: int | None = 10
     max_depth: int | None = None
     min_mapq: int = 20
     min_baseq: int = 20
@@ -245,24 +245,6 @@ def load_assets(root):
     return manifest
 
 
-def check_kmer_length(bam, kmer_length):
-    import pysam
-    with pysam.AlignmentFile(str(bam), "rb") as handle:
-        seen = 0
-        for read in handle.fetch(until_eof=True):
-            if read.is_unmapped or read.is_secondary or read.is_supplementary:
-                continue
-            length = read.query_length
-            if length and length < kmer_length:
-                raise ValueError(
-                    f"BAM contains reads of length {length}, shorter than asset k-mer length {kmer_length}; "
-                    "prepare assets using a k-mer length compatible with the trimmed reads"
-                )
-            seen += 1
-            if seen >= 10_000:
-                break
-
-
 def empty_evidence(reason):
     return dict(predicted_ploidy="UNCERTAIN", selected_sites=0, available_sites=0,
                 bootstrap_support="NA", informative_chromosomes=0, uncertainty_reasons=reason,
@@ -320,6 +302,7 @@ def call(config: CallConfig):
     request = dict(workflow="call", version=__version__, output_schema=OUTPUT_SCHEMA,
                    sample=sample, bam=str(bam), assets=str(assets),
                    samtools=config.samtools_executable, filters=config.count_filters(),
+                   min_depth_inclusive=False,
                    model_site_limits=dict(min_sites=DEFAULT_MIN_SITES, max_sites=DEFAULT_MAX_SITES),
                    output_options=dict(keep_details=config.keep_details, export_figures=config.export_figures))
     if config.export_figures:
@@ -375,7 +358,6 @@ def call(config: CallConfig):
                 assets=dict(identity(assets / "assets.json"), sha256=sha256(assets / "assets.json")))
             first_bed = assets / manifest["stages"][0]["bed"]
             _, input_warnings = validate_inputs(bam, reference, first_bed, None, allow_empty=True)
-            check_kmer_length(bam, manifest["kmer_length"])
             record["input_warnings"] = input_warnings
             record["reference"] = {k: v for k, v in manifest.items() if k not in ("stages", "sha256")}
             atomic_json(root / "details/run.json", clean_json(record))

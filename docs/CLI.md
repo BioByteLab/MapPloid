@@ -24,14 +24,14 @@ python examples/quickstart/run.py --help
 ## Prepare reference regions
 
 ```bash
-python mapploid prepare --reference genome.fa --kmer 150 --out reference_assets
+python mapploid prepare --reference genome.fa --kmer 100 --out reference_assets
 ```
 
 | Option | Required / default | Meaning |
 |---|---|---|
 | --reference FASTA | Required | Uncompressed reference FASTA, matching the BAM alignment reference |
 | --out DIR | Required | Reference asset directory; pass it to `call --assets` |
-| --kmer BP | 150 | GenMap k-mer length in bp; must not exceed the read lengths used |
+| --kmer BP | 100 | GenMap k-mer length in bp |
 | --min-region-length BP | 10000 | Minimum continuous high-mappability region length after exclusions |
 | --threads N | 8 | Threads for reference preparation |
 | --exclude-bed BED | None | Exclude regions in a BED file; may be repeated |
@@ -63,14 +63,14 @@ Blank lines and lines starting with `#` in BAM lists are ignored. Relative paths
 |---|---|---|
 | --allele-min FLOAT | 0.15 | Minimum frequency of each of the two leading alleles |
 | --allele-max FLOAT | 0.85 | Maximum frequency of each of the two leading alleles |
-| --min-depth N | Automatic | Minimum site depth after quality filtering; boundary included |
+| --min-depth N | 10 | Exclusive lower site-depth bound after quality filtering; retain depth > N |
 | --max-depth N | Automatic | Maximum site depth after quality filtering; boundary included |
 | --min-mapq N | 20 | Minimum read mapping quality, in the range 0–255 |
 | --min-baseq N | 20 | Minimum base quality, in the range 0–255 |
 | --min-allele-reads N | 2 | Minimum supporting reads for each retained allele |
 | --pair-purity FLOAT | 0.95 | Minimum fraction of valid base counts explained by the two leading alleles |
 
-Frequencies use the sum of the two leading allele counts. Site depth uses all quality-filtered A/C/G/T counts; it is not whole-sample sequencing depth. Automatic depth bounds are estimated per analysis stage and recorded in the report. The public `call` command uses the built-in model decision settings; these are described in the [report guide](REPORT_GUIDE.md).
+Frequencies use the sum of the two leading allele counts. Site depth uses all quality-filtered A/C/G/T counts; it is not whole-sample sequencing depth. The default lower depth bound is fixed at 10 and excluded: retain depth > 10 (integer depth at least 11). The automatic maximum depth is estimated per analysis stage and included. Depth thresholds are recorded in the run details. The public `call` command uses the built-in model decision settings; these are described in the [report guide](REPORT_GUIDE.md).
 
 ## Quickstart script
 
@@ -98,15 +98,12 @@ BAMs must be coordinate-sorted and indexed with a BAI or CSI. Reference sequence
 names and lengths must match. `--assets` is the directory produced by
 `prepare --out`, not a FASTA or BED file.
 
-Reference preparation defaults: `--kmer 150`, two GenMap mismatches,
+Reference preparation defaults: `--kmer 100`, two GenMap mismatches,
 `--min-region-length 10000`, `--threads 8`. Optional `--exclude-bed` may be
 repeated to exclude specified regions.
 Strict score-1 regions are retained after gaps and exclusions; short regions
 are not joined across gaps. Use a new asset directory for changed preparation
 settings. The source FASTA must remain accessible.
-
-Read-length check: up to 10,000 primary alignments are inspected, and reads shorter than the asset k-mer
-length cause an input error.
 
 Both leading alleles must pass the frequency interval. Sample names may contain letters, digits, dots, underscores and hyphens.
 

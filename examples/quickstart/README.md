@@ -50,10 +50,10 @@ The examples below use `sample.sorted.bam`; substitute the path to an existing v
 
 ### Step 2: prepare reference regions (once per reference and settings)
 
-This example assumes 150 bp reads. `--kmer` must not exceed the read lengths actually used; account for shorter reads after trimming.
+The commands below use a GenMap k-mer length of 100.
 
 ```bash
-python mapploid prepare --reference genome.fa --kmer 150 --threads 8 --out reference_assets
+python mapploid prepare --reference genome.fa --kmer 100 --threads 8 --out reference_assets
 ```
 
 This step runs GenMap to calculate mappability and create analysis regions. Runtime depends on reference size. `reference_assets/` becomes `--assets` in the next step and can be reused for samples sharing the reference. Keep the source FASTA available.

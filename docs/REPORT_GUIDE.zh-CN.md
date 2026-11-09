@@ -6,6 +6,8 @@
 
 结果报告文件 `report.html`，后续分析读取 `result.tsv`，完整诊断值查看 `details/run.json`。
 
+报告顶部使用六列表格：`Sample`、`Ploidy`、`Status`、`Analyzed region (Mb)`、`Available qualifying SNPs`、`Fitting SNPs`。样本名与结果在表内显示。
+
 ## result.tsv 结果文件
 
 | 标签 | 含义 |
@@ -25,6 +27,8 @@
 原因和警告位于各样本 `details/run.json` 的 `result` 下。
 
 ## 判定要求与辅助诊断
+
+报告表格按 `Item → Observed → Criterion or context → Result → Role` 排列；`Role` 使用 `Requirement`（判定要求）或 `Diagnostic`（辅助诊断）。
 
 三项判定要求决定是否报告倍性；Bootstrap stability 和 Chromosome consistency 只做展示和诊断说明。
 
@@ -46,11 +50,10 @@ Bootstrap 支持度以全部计划重复为分母，未得到有效模型结果�
 
 ## 观测与理论拟合分布图
 
-三行分别对应 2x、3x、4x 候选，使用相同拟合 SNP、分箱和坐标尺度。
+三行分别对应 2x、3x、4x 候选，使用相同拟合 SNP、分箱和坐标尺度。每张图保留一个总标题 `Observed and model-fitted distributions`，同时保留各模型标题及染色体支持矩阵标题；仅删除重复的 HTML 章节标题和图下说明；解释见本指南。
 
 | 图内标签 | 含义 |
 |---|---|
-| Observed and model-fitted distributions | 观测位点频率与模型预测的对比 |
 | Observed | 灰色观测分布 |
 | Fitted model | 彩色拟合分布 |
 | Minor allele fraction | 次要等位基因计数除以两个主要等位基因的计数之和 |
@@ -114,8 +117,10 @@ python scripts/export_chromosome_support.py --run-json sample_result/details/run
 | TOO_FEW_BLOCKS | 可用于重采样的有位点 5 Mb 区块少于 5 个 |
 | RHO_AT_BOUNDARY | 拟合离散参数接近允许的边界 |
 | A_AT_BOUNDARY | 四倍体外侧峰权重接近下界 |
-| A_AT_UPPER_BOUNDARY | 四倍体中央峰权重接近零 |
+| A_AT_UPPER_BOUNDARY | 四倍体中央峰权重接近零；保留在运行记录中，HTML 不展示此条 |
 | MODEL_ASSUMPTION_SENSITIVE | 放宽四倍体外侧峰约束后，最佳候选发生变化 |
+
+报告省略输入和分析设置区块。输入路径、请求与实际过滤参数及输入提示仍可通过页脚的运行记录或日志链接查看。过滤展示后没有其他提示时显示 `No additional displayed warnings.`。
 
 ## 详细部分与批量总览
 
@@ -123,9 +128,6 @@ python scripts/export_chromosome_support.py --run-json sample_result/details/run
 |---|---|
 | Detailed diagnostics | 原因、警告，以及可用时各参考序列的拟合结果 |
 | Reference-sequence fits | 序列名称、SNP 数、候选、delta BIC 和状态 |
-| Inputs and analysis settings | BAM、参考资源、k-mer 长度、最小区域长度、可用区域大小、种子和请求的过滤参数 |
-| Actual site filters | 最终分析阶段实际使用的过滤参数 |
-| Input notices | 输入相关提示，仅在存在时显示 |
 | Result table / Run record / Run log / Analysis regions | 分别链接到 TSV、详细 JSON、运行日志及 BED 区域 |
 | Sample overview | 批量进度、各状态数量及已判定倍性的数量 |
 | Search sample / All statuses | 按样本名搜索、按状态筛选 |

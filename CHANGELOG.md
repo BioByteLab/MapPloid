@@ -2,6 +2,32 @@
 
 **English** | [简体中文](CHANGELOG.zh-CN.md)
 
+## Default k-mer length — 2026-11-06
+
+- Set the default GenMap k-mer length to 100 for prepare, reference-mask and Python configuration objects; synchronize CLI help, bilingual documentation and the existing default-value check.
+
+## Remove read-length check — 2026-11-04
+
+- Remove the preliminary scan of up to 10,000 primary alignments and the error for reads shorter than the reference asset k-mer length. Single-sample and batch calls accept mixed read lengths and reads shorter than k.
+- Update the mixed-length BAM integration check and bilingual usage documentation.
+
+## Default minimum depth — 2026-11-02
+
+- Set the default lower site-depth bound after quality filtering to 10 for single-sample and batch calls, internal counting and the legacy `bam-counts` command. Retain only depth > 10; `--min-depth N` overrides the bound and retains depth > N.
+- Continue estimating the maximum depth automatically unless `--max-depth` is specified.
+- Record the exclusive lower-bound rule in run settings so results from the earlier inclusive rule are not reused.
+
+## Sample report layout — 2026-11-02
+
+- Present sample identity, ploidy, status and site/region counts in a single table; move abbreviated Role labels to the end of the diagnostic table.
+- Keep one distribution title inside each figure; remove the duplicate HTML heading and explanatory captions, hide the A_AT_UPPER_BOUNDARY message in HTML, and omit the input/settings section. Full diagnostics and settings remain in run.json.
+- Preserve model decisions, data formats and chromosome column widths.
+
+## Chromosome support row width — 2026-11-01
+
+- Keep chromosome columns at the same scale after wrapping or pagination; incomplete rows stay left-aligned with blank space on the right in both combined and standalone figures.
+- Wrap sequence labels and calculate row height using the shared column width.
+
 ## Chromosome support figure — 2026-10-31
 
 - Add per-reference-sequence model support to v0.10.5 reports, distinguishing supported models, low separation, too few SNPs and unresolved fits.

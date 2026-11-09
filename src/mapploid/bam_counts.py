@@ -45,7 +45,7 @@ class BamCountConfig:
     sample: str | None = None
     min_mapq: int = 20
     min_baseq: int = 20
-    min_depth: int | None = None
+    min_depth: int | None = 10
     max_depth: int | None = None
     allele_min: float = 0.15
     allele_max: float = 0.85
@@ -135,6 +135,7 @@ def build_bam_counts(config: BamCountConfig) -> dict[str, Path]:
         histogram[0] = histogram.get(0, 0) + max(0, mask_bases - int(extraction["pileup_sites"]))
     thresholds = estimate_depth_thresholds(histogram, config.min_depth, config.max_depth)
     thresholds.update({
+        "min_depth_inclusive": False,
         "allele_min": config.allele_min,
         "allele_max": config.allele_max,
         "pair_purity": config.pair_purity,
@@ -149,7 +150,7 @@ def build_bam_counts(config: BamCountConfig) -> dict[str, Path]:
     maximum_depth = int(thresholds["max_depth"])
     filtering.update({
         "low_depth": sum(count for depth, count in observed_histogram.items()
-                         if depth < minimum_depth),
+                         if depth <= minimum_depth),
         "high_depth": sum(count for depth, count in observed_histogram.items()
                           if depth > maximum_depth),
     })
@@ -161,7 +162,7 @@ def build_bam_counts(config: BamCountConfig) -> dict[str, Path]:
         }
         filtering[category] = sum(
             count for depth, count in category_histogram.items()
-            if minimum_depth <= depth <= maximum_depth
+            if minimum_depth < depth <= maximum_depth
         )
     write_filter_summary(outputs["filter_summary"], extraction, filtering)
 
@@ -183,7 +184,7 @@ def build_bam_counts(config: BamCountConfig) -> dict[str, Path]:
                                    encoding="utf-8")
     print(
         f"[MapPloid] {sample}: retained {filtering['retained_sites']:,} "
-        f"biallelic sites ({thresholds['min_depth']} <= depth <= "
+        f"biallelic sites ({thresholds['min_depth']} < depth <= "
         f"{thresholds['max_depth']})",
         file=sys.stderr,
     )
@@ -509,7 +510,7 @@ def filter_sites(
         for line in incoming:
             fields = line.rstrip("\n").split("\t")
             depth = int(fields[indexes["depth"]])
-            if depth < minimum_depth:
+            if depth <= minimum_depth:
                 counters["LOW_DEPTH"] += 1
                 continue
             if depth > maximum_depth:
@@ -634,7 +635,7 @@ def _signature(
         "backend": config.samtools_executable,
         "mode": config.mode,
         "mapploid_version": __version__,
-        "filter_algorithm": "strict-pair-depth-mac-v4-configurable",
+        "filter_algorithm": "strict-pair-depth-mac-v5-exclusive-min",
     }
 
 

@@ -6,6 +6,8 @@
 
 The result report is `report.html`. Read `result.tsv` for downstream analysis and `details/run.json` for complete diagnostic values.
 
+The report starts with a six-column table: `Sample`, `Ploidy`, `Status`, `Analyzed region (Mb)`, `Available qualifying SNPs` and `Fitting SNPs`. The sample name and result appear in this table.
+
 ## result.tsv result file
 
 | Label | Meaning |
@@ -24,15 +26,17 @@ The main TSV contains `sample`, `predicted_ploidy`, `status`, `selected_sites`, 
 
 ## Decision requirements and supporting diagnostics
 
+The report columns are `Item → Observed → Criterion or context → Result → Role`. Role is abbreviated to `Requirement` or `Diagnostic`.
+
 Only the three decision requirements determine the ploidy call. Bootstrap stability and Chromosome consistency are displayed for diagnostic interpretation.
 
 | Role | Report label | Requirement or interpretation |
 |---|---|---|
-| Decision requirement | Fitting SNPs | At least 25,000 SNPs used in fitting |
-| Decision requirement | BIC separation | Second-best BIC minus best BIC at least 10 |
-| Decision requirement | Main-model convergence | All three main models (2x, 3x, 4x) converged |
-| Supporting diagnostic | Bootstrap stability | Agreement with the global candidate across planned block-bootstrap replicates; warning below 0.85 |
-| Supporting diagnostic | Chromosome consistency | Number of informative reference sequences and their agreement with the global candidate; warning for fewer than 3 sequences or agreement below 70% |
+| Requirement | Fitting SNPs | At least 25,000 SNPs used in fitting |
+| Requirement | BIC separation | Second-best BIC minus best BIC at least 10 |
+| Requirement | Main-model convergence | All three main models (2x, 3x, 4x) converged |
+| Diagnostic | Bootstrap stability | Agreement with the global candidate across planned block-bootstrap replicates; warning below 0.85 |
+| Diagnostic | Chromosome consistency | Number of informative reference sequences and their agreement with the global candidate; warning for fewer than 3 sequences or agreement below 70% |
 
 Decision requirements use `PASS / FAIL`; supporting diagnostics use `CONSISTENT / WARNING` to indicate whether diagnostic thresholds are met or need attention. Diagnostics do not veto the call.
 The analysis expands from about 20 Mb to 50 Mb and then 100 Mb when decision requirements fail, subject to available regions. Runtime failures differ from inconclusive analyses.
@@ -44,11 +48,10 @@ Convergence means optimization reached its stopping criterion, and minimum BIC i
 
 ## Observed and model-fitted distributions
 
-Each row shows one candidate (2x, 3x, 4x) using the same fitting SNPs, bins and axis scales.
+Each row shows one candidate (2x, 3x, 4x) using the same fitting SNPs, bins and axis scales. Each figure retains one overall title, “Observed and model-fitted distributions”, along with model panel titles and the chromosome matrix title. The duplicate HTML section heading and explanatory captions are omitted. Interpretations are provided here.
 
 | Plot label | Meaning |
 |---|---|
-| Observed and model-fitted distributions | Comparison of observed site frequencies with model predictions |
 | Observed | Gray observed distribution |
 | Fitted model | Colored fitted distribution |
 | Minor allele fraction | Minor allele count divided by the sum of the two leading allele counts |
@@ -109,8 +112,10 @@ Omit `--combined` to export only the support matrix as `chromosome_support.pdf/p
 | TOO_FEW_BLOCKS | Fewer than five occupied 5 Mb blocks for resampling |
 | RHO_AT_BOUNDARY | Fitted dispersion is near an allowed boundary |
 | A_AT_BOUNDARY | Tetraploid outer-peak weight is near its lower bound |
-| A_AT_UPPER_BOUNDARY | Tetraploid central-peak weight is near zero |
+| A_AT_UPPER_BOUNDARY | Tetraploid central-peak weight is near zero; retained in the run record but omitted from HTML |
 | MODEL_ASSUMPTION_SENSITIVE | Relaxing the tetraploid outer-peak constraint changes the best candidate |
+
+The report omits the input and analysis settings section. Input paths, requested and actual filters, and input notices remain accessible through the footer links to the run record or log. If no other messages remain after display filtering, the report says `No additional displayed warnings.`
 
 ## Detailed sections and batch overview
 
@@ -118,9 +123,6 @@ Omit `--combined` to export only the support matrix as `chromosome_support.pdf/p
 |---|---|
 | Detailed diagnostics | Reasons and warnings, plus per-reference-sequence fits when available |
 | Reference-sequence fits | Sequence, SNP count, candidate, delta BIC and status |
-| Inputs and analysis settings | BAM, reference assets, k-mer length, minimum region length, eligible region size, seed and requested filters |
-| Actual site filters | Filters actually applied in the final analysis stage |
-| Input notices | Input-specific messages, when present |
 | Result table / Run record / Run log / Analysis regions | Links to TSV, detailed JSON, execution log and BED regions |
 | Sample overview | Batch progress, status counts and called ploidy counts |
 | Search sample / All statuses | Search sample names and filter by status |

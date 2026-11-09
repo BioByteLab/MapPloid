@@ -33,7 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     reference.add_argument("--reference", type=Path, required=True)
     reference.add_argument("--out-dir", type=Path, required=True)
-    reference.add_argument("--kmer", dest="kmer_length", type=int, default=150)
+    reference.add_argument("--kmer", dest="kmer_length", type=int, default=100)
     reference.add_argument("--min-region-length", type=int, default=1,
                            help="minimum continuous post-exclusion region length in bp (default: 1)")
     reference.add_argument("--mismatches", type=int, default=2)
@@ -95,7 +95,8 @@ def build_parser() -> argparse.ArgumentParser:
     counts.add_argument("--sample")
     counts.add_argument("--min-mapq", type=int, default=20)
     counts.add_argument("--min-baseq", type=int, default=20)
-    counts.add_argument("--min-depth", type=int)
+    counts.add_argument("--min-depth", type=int, default=10,
+                        help="exclusive lower site-depth bound after quality filtering; retain depth > N (default: 10)")
     counts.add_argument("--max-depth", type=int)
     counts.add_argument("--allele-min", type=float, default=0.15)
     counts.add_argument("--allele-max", type=float, default=0.85)

@@ -55,7 +55,7 @@ class PrepareOptionsTests(unittest.TestCase):
 
     def test_cli_defaults_and_complete_prepare_flow(self):
         args = build_parser().parse_args(['prepare', '--reference', 'r.fa', '--out', 'a'])
-        self.assertEqual(args.kmer, 150)
+        self.assertEqual(args.kmer, 100)
         self.assertEqual(args.min_region_length, 10000)
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

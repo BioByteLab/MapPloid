@@ -50,10 +50,10 @@ samtools index sample.sorted.bam
 
 ### 第二步：准备参考区域（同一参考及参数仅做一次）
 
-以下以 150 bp reads 为例；`--kmer` 不能大于实际使用的 reads 长度，修剪后的短 reads 也需考虑。
+以下命令使用的 GenMap k-mer 长度为 100。
 
 ```bash
-python mapploid prepare --reference genome.fa --kmer 150 --threads 8 --out reference_assets
+python mapploid prepare --reference genome.fa --kmer 100 --threads 8 --out reference_assets
 ```
 
 此步骤通过 GenMap 计算 mappability 并生成分析区域。耗时取决于参考基因组大小。`reference_assets/` 是下一步的 `--assets`，可供同一参考的多个样本复用；原始 FASTA 需保留。

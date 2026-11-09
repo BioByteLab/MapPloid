@@ -76,7 +76,7 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'modified'):
             p.call(p.CallConfig(self.bam,self.assets,self.root/'out'))
 
-    def test_public_call_preserves_v20_short_read_validation(self):
+    def test_public_call_accepts_mixed_reads_shorter_than_asset_kmer(self):
         from mapploid.cli import main
         self.prepare()
         asset_stamp=(self.assets/'assets.json').stat().st_mtime_ns
@@ -93,10 +93,13 @@ class PipelineTests(unittest.TestCase):
         output=self.root/'out'
         status=main(['call','--bam',str(self.bam),'--assets',str(self.assets),
                      '--out',str(output),'--sample','short_mixed'])
-        # The manuscript v20 source retains its existing k-mer/read-length check.
-        self.assertEqual(status,1)
-        self.assertEqual(self.result(output/'result.tsv')['status'],'FAILED')
-        self.assertIn('shorter',p.read_json(output/'details/run.json')['result']['reason'])
+        # Mixed 20/75 bp reads reach counting with k=50; no biallelic sites are expected.
+        self.assertEqual(status,0)
+        self.assertEqual(self.result(output/'result.tsv')['status'],'UNCERTAIN')
+        record=p.read_json(output/'details/run.json')
+        self.assertEqual(record['state'],'COMPLETE')
+        self.assertEqual(record['result']['reason'],'NO_VALID_SITES')
+        self.assertGreater(record['stages'][-1]['counts']['extraction']['acgt_observations'],0)
         self.assertEqual((self.assets/'assets.json').stat().st_mtime_ns,asset_stamp)
 
     def test_tool_failure_is_failed_not_biological_uncertainty(self):

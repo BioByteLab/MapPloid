@@ -58,10 +58,18 @@ def run():
     report = (sample / "report.html").read_text()
     assert "Output schema 4" in report
     assert "Decision requirements and supporting diagnostics" in report
-    assert report.count("<td>Decision requirement</td>") == 3
-    assert report.count("<td>Supporting diagnostic</td>") == 2
+    assert report.count("<td>Requirement</td>") == 3
+    assert report.count("<td>Diagnostic</td>") == 2
     assert "Valid replicates" not in report and "JS divergence" not in report
-    assert "Observed and model-fitted distributions" in report
+    assert report.count("Observed and model-fitted distributions") == 1
+    assert "<h2>Observed and model-fitted distributions</h2>" not in report
+    assert "<th>Result</th><th>Role</th>" in report
+    assert "<th>Sample</th><th>Ploidy</th><th>Status</th>" in report
+    assert "<h1>synthetic_3x</h1>" not in report
+    for removed in ("Only the three decision requirements", "Frequency = minor count",
+                    "The lower matrix shows", "A_AT_UPPER_BOUNDARY",
+                    "Inputs and analysis settings", "Actual site filters", "Input notices"):
+        assert removed not in report
     assert "Chromosome model support" in report
     assert report.count("<svg") == 1
     model_result = record["stages"][-1]["model"]["result"]

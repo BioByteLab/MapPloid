@@ -39,7 +39,7 @@ the same directory contains `result.tsv` and PDF/PNG figures under `figures/`.
 ## Basic MapPloid workflow
 
 Use coordinate-sorted, indexed BAMs with matching reference sequence names and lengths.
-Choose a k-mer length no greater than the read lengths; 125 is an example.
+The example below uses a GenMap k-mer length of 125.
 
 ```bash
 mapploid prepare --reference genome.fa --kmer 125 --out reference_assets

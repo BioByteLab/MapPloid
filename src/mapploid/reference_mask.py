@@ -40,7 +40,7 @@ from .intervals import (
 class ReferenceMaskConfig:
     reference: Path
     output_dir: Path
-    kmer_length: int = 150
+    kmer_length: int = 100
     mismatches: int = 2
     threads: int = 8
     genmap_executable: str = "genmap"

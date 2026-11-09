@@ -39,7 +39,7 @@ python examples/quickstart/run.py
 ## MapPloid基础流程
 
 BAM 必须按坐标排序并建立索引，参考序列名称及长度须匹配。
-k-mer 长度不能大于实际读长；下例使用 125。
+下例使用的 GenMap k-mer 长度为 125。
 
 ```bash
 mapploid prepare --reference genome.fa --kmer 125 --out reference_assets

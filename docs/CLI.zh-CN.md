@@ -24,14 +24,14 @@ python examples/quickstart/run.py --help
 ## 准备参考区域
 
 ```bash
-python mapploid prepare --reference genome.fa --kmer 150 --out reference_assets
+python mapploid prepare --reference genome.fa --kmer 100 --out reference_assets
 ```
 
 | 选项 | 必填 / 默认值 | 含义 |
 |---|---|---|
 | --reference FASTA | 必填 | 未压缩的参考 FASTA，需与 BAM 比对参考一致 |
 | --out DIR | 必填 | 参考资源目录，供后续 `call --assets` 使用 |
-| --kmer BP | 150 | GenMap k-mer 长度，单位 bp；不能大于实际使用的读长 |
+| --kmer BP | 100 | GenMap k-mer 长度，单位 bp |
 | --min-region-length BP | 10000 | 扣除排除区域后，连续高可比对区域的最小长度 |
 | --threads N | 8 | 参考准备使用的线程数 |
 | --exclude-bed BED | 无 | 排除 BED 文件中的区域；可重复指定 |
@@ -64,7 +64,7 @@ BAM 文件名必须不同，且样本使用同一参考。批量单样本结果�
 |---|---|---|
 | --allele-min FLOAT | 0.15 | 计数最高的两个等位基因各自的最低频率 |
 | --allele-max FLOAT | 0.85 | 计数最高的两个等位基因各自的最高频率 |
-| --min-depth N | 自动 | 质量过滤后的最低位点深度，包含边界值 |
+| --min-depth N | 10 | 质量过滤后的位点深度下限，不包含边界值；仅保留 depth > N |
 | --max-depth N | 自动 | 质量过滤后的最高位点深度，包含边界值 |
 | --min-mapq N | 20 | 最低比对质量，范围 0–255 |
 | --min-baseq N | 20 | 最低碱基质量，范围 0–255 |
@@ -73,7 +73,7 @@ BAM 文件名必须不同，且样本使用同一参考。批量单样本结果�
 
 频率以两个主要等位基因的计数之和为分母。
 位点深度使用质量过滤后的全部 A/C/G/T 计数，不等于整个样本的测序深度。
-自动深度边界按分析阶段估计，并记入报告。公开 `call` 命令使用内置模型判定设置，详见 [报告阅读指南](REPORT_GUIDE.zh-CN.md)。
+默认深度下限固定为 10，不包含边界值，即仅保留 depth > 10（整数深度至少为 11）的位点；最高深度按分析阶段自动估计，包含上限边界值。实际深度阈值记入运行详情。公开 `call` 命令使用内置模型判定设置，详见 [报告阅读指南](REPORT_GUIDE.zh-CN.md)。
 
 ## Quickstart 脚本
 
@@ -105,13 +105,10 @@ python examples/quickstart/run.py --out /tmp/mapploid_demo_new
 BAM 必须按坐标排序，并带 BAI 或 CSI 索引。参考序列名称和长度必须匹配。
 `--assets` 是 `prepare --out` 生成的目录，不是 FASTA 或 BED 文件。
 
-参考准备默认值：`--kmer 150`、GenMap 允许 2 个错配、`--min-region-length 10000`、`--threads 8`。
+参考准备默认值：`--kmer 100`、GenMap 允许 2 个错配、`--min-region-length 10000`、`--threads 8`。
 可重复指定 `--exclude-bed` 排除指定区域。
 扣除参考缺口及排除区域后保留严格分数为 1 的区域；短区域不会跨缺口拼接。
 准备参数改变时使用新资源目录。原始 FASTA 必须保持可访问。
-
-读长检查：最多检查 10,000 条主比对记录，
-若读长小于参考资源的 k-mer 长度，则报输入错误。
 
 两个主要等位基因均需通过频率区间过滤。样本名可包含字母、数字、点、下划线及连字符。
 

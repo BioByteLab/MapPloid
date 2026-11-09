@@ -184,6 +184,11 @@ class FilterCliIntegrationTests(unittest.TestCase):
                 with self.subTest(changed=key), self.assertRaisesRegex(ValueError, 'settings changed'):
                     pipeline.call(replace(config, **{key:value}))
             # A completed run made with earlier limits must not be silently reused.
+            request.pop('min_depth_inclusive')
+            request_path.write_text(json.dumps(run_record))
+            with self.assertRaisesRegex(ValueError, 'settings changed'):
+                pipeline.call(config)
+            request['min_depth_inclusive'] = False
             request['model_site_limits'] = dict(min_sites=5_000, max_sites=50_000)
             request_path.write_text(json.dumps(run_record))
             with self.assertRaisesRegex(ValueError, 'settings changed'):

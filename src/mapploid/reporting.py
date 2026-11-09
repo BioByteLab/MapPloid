@@ -149,12 +149,13 @@ def evidence_figure(stage, export_dir=None):
     colors = {2: "#597181", 3: "#d79246", 4: "#82475f"}
     files, images = [], []
     rows = chromosome_rows(stage)
+    columns = min(12, len(rows))
     pages = max(1, (len(rows) + 23) // 24)
     with mpl.rc_context({"font.size": 10, "svg.fonttype": "none", "svg.hashsalt": "MapPloid",
                          "pdf.fonttype": 42, "ps.fonttype": 42, "font.family": "DejaVu Sans"}):
         for page_index in range(pages):
             subset = rows[page_index * 24:(page_index + 1) * 24]
-            extra_height = chromosome_matrix_height(subset) if subset else 0
+            extra_height = chromosome_matrix_height(subset, columns) if subset else 0
             fig = Figure(figsize=(6.2, 7.2 + extra_height), layout="constrained")
             groups = [subset[i:i + 12] for i in range(0, len(subset), 12)]
             grid = fig.add_gridspec(3 + len(groups), 1, height_ratios=[1, 1, 1] + [.5] * len(groups))
@@ -194,7 +195,7 @@ def evidence_figure(stage, export_dir=None):
             axes[1].set_ylabel("Sites (%)", fontsize=11)
             for group_index, group in enumerate(groups):
                 matrix_ax = fig.add_subplot(grid[3 + group_index])
-                draw_chromosome_matrix(matrix_ax, group)
+                draw_chromosome_matrix(matrix_ax, group, columns)
                 if group_index == 0:
                     matrix_title = "Chromosome model support"
                     if pages > 1:
@@ -217,16 +218,24 @@ def chromosome_rows(stage):
     return sorted(stage.get("chromosomes", []), key=natural_key)
 
 
-def matrix_labels(rows):
-    width = min(12, max(4, 60 // max(1, len(rows))))
+def matrix_labels(rows, columns=None):
+    width = min(12, max(4, 60 // max(1, columns or len(rows))))
     return [textwrap.fill(str(row.get("chrom", "NA")), width=width) for row in rows]
 
 
-def draw_chromosome_matrix(ax, rows):
+def draw_chromosome_matrix(ax, rows, columns=None):
     """Columns are sequences; rows are models. No vote is invented for unresolved fits."""
     from matplotlib.patches import Rectangle
     colors = {"2x": "#597181", "3x": "#d79246", "4x": "#82475f"}
+    columns = max(len(rows), columns or len(rows))
     ax.set_facecolor("#f8fafb")
+    if len(rows) < columns:
+        # Reserve the full row's scale, leaving unused columns blank.
+        ax.set_facecolor("none")
+        ax.axvspan(0, len(rows), facecolor="#f8fafb", zorder=0)
+        ax.spines["right"].set_position(("data", len(rows)))
+        for side in ("top", "bottom"):
+            ax.spines[side].set_bounds(0, len(rows))
     for column, row in enumerate(rows):
         candidate, status = row.get("best_hypothesis"), row.get("status")
         if status in ("PASS", "LOW_DELTA_BIC") and candidate in colors:
@@ -239,9 +248,9 @@ def draw_chromosome_matrix(ax, rows):
             cell = Rectangle((column, 0), 1, 3, facecolor="#e5e9ec", edgecolor="none")
             ax.text(column + .5, 1.5, "NA", ha="center", va="center", fontsize=8, color="#65747d")
         ax.add_patch(cell)
-    ax.set_xlim(0, len(rows))
+    ax.set_xlim(0, columns)
     ax.set_ylim(3, 0)
-    ax.set_xticks([i + .5 for i in range(len(rows))], matrix_labels(rows))
+    ax.set_xticks([i + .5 for i in range(len(rows))], matrix_labels(rows, columns))
     ax.xaxis.tick_top()
     ax.tick_params(axis="x", length=0, pad=6, labelsize=8)
     for label in ax.get_xticklabels():
@@ -257,13 +266,15 @@ def draw_chromosome_matrix(ax, rows):
         spine.set_linewidth(.75)
 
 
-def chromosome_matrix_height(rows):
+def chromosome_matrix_height(rows, columns=None):
+    columns = columns or min(12, len(rows))
     groups = [rows[i:i + 12] for i in range(0, len(rows), 12)]
-    return .8 + sum(1.0 + .12 * max(len(label.splitlines()) for label in matrix_labels(group))
+    return .8 + sum(1.0 + .12 * max(len(label.splitlines()) for label in matrix_labels(group, columns))
                     for group in groups)
 
 
-def chromosome_matrix_panel(figure, rows, page_index=0, pages=1):
+def chromosome_matrix_panel(figure, rows, page_index=0, pages=1, columns=None):
+    columns = columns or min(12, len(rows))
     groups = [rows[i:i + 12] for i in range(0, len(rows), 12)]
     axes = figure.subplots(len(groups), 1, squeeze=False).ravel()
     title = "Chromosome model support"
@@ -271,7 +282,7 @@ def chromosome_matrix_panel(figure, rows, page_index=0, pages=1):
         title += f" ({page_index + 1}/{pages})"
     figure.suptitle(title, fontsize=11, fontweight="bold")
     for ax, group in zip(axes, groups):
-        draw_chromosome_matrix(ax, group)
+        draw_chromosome_matrix(ax, group, columns)
     chromosome_matrix_legend(figure)
 
 
@@ -293,12 +304,13 @@ def chromosome_support_figures(stage, export_dir=None):
     from matplotlib.figure import Figure
     images, files = [], []
     pages = (len(rows) + 23) // 24
+    columns = min(12, len(rows))
     with mpl.rc_context({"font.size": 9, "svg.fonttype": "none", "svg.hashsalt": "MapPloid-chromosomes",
                          "pdf.fonttype": 42, "ps.fonttype": 42, "font.family": "DejaVu Sans"}):
         for page_index in range(pages):
             subset = rows[page_index * 24:(page_index + 1) * 24]
-            fig = Figure(figsize=(6.2, chromosome_matrix_height(subset)), layout="constrained")
-            chromosome_matrix_panel(fig, subset, page_index, pages)
+            fig = Figure(figsize=(6.2, chromosome_matrix_height(subset, columns)), layout="constrained")
+            chromosome_matrix_panel(fig, subset, page_index, pages, columns)
             image, paths = save_report_figure(fig, export_dir,
                 "chromosome_support" + (f"_{page_index + 1:03d}" if pages > 1 else ""))
             images.append(image)
@@ -333,56 +345,35 @@ def write_sample_report(root, record, export_figures=False):
     reasons, warnings = flags(row.get("reason")), flags(row.get("warnings"))
     settings = record.get("model_settings", {})
     gates, diagnostic_rows = diagnostics(stage, settings)
-    body = f'<header><div class="eyebrow">MAPPLOID {esc(record["version"])} · SAMPLE REPORT</div><h1>{esc(row["sample"])}</h1></header>'
-    body += f'<div class="hero"><div class="result">{esc(row["predicted_ploidy"])}</div><span class="badge {esc(state)}">{esc(state)}</span>'
+    body = f'<header><div class="eyebrow">MAPPLOID {esc(record["version"])} · SAMPLE REPORT</div></header>'
+    body += '<section>' + table(
+        ["Sample", "Ploidy", "Status", "Analyzed region (Mb)", "Available qualifying SNPs", "Fitting SNPs"],
+        [[row["sample"], row["predicted_ploidy"], state, num(row.get("analyzed_region_mb")),
+          num(evidence.get("available_sites")), num(row.get("selected_sites"))]])
     if state == "UNCERTAIN" and evidence.get("best_hypothesis"):
         body += f'<p>Best candidate: {esc(evidence["best_hypothesis"])}. No definitive ploidy call.</p>'
     if record.get("state") == "INTERRUPTED":
         body += '<p>Run interrupted. Rerun the same command to resume.</p>'
     if state in ("UNCERTAIN", "FAILED"):
         body += '<p>See <a href="details/run.json">details/run.json</a> for the reason.</p>'
-    body += '<div class="metrics">'
-    for label, val in [("Analyzed region (Mb)", row.get("analyzed_region_mb")),
-                       ("Available qualifying SNPs", evidence.get("available_sites")),
-                       ("Fitting SNPs", row.get("selected_sites"))]:
-        body += f'<div class="metric">{esc(label)}<strong>{esc(num(val))}</strong></div>'
-    body += '</div></div>'
+    body += '</section>'
     if state != "FAILED":
         body += '<section><h2>Decision requirements and supporting diagnostics</h2>'
-        body += '<p class="muted">Only the three decision requirements determine the ploidy call. The two supporting diagnostics do not veto it. Bootstrap support is resampling agreement, not the probability that the call is correct.</p>'
-        combined = [["Decision requirement", *row] for row in gates]
-        combined += [["Supporting diagnostic", *row] for row in diagnostic_rows]
-        body += table(["Role", "Item", "Observed", "Criterion or context", "Result"], combined) + '</section>'
+        combined = [[*gate, "Requirement"] for gate in gates]
+        combined += [[*diagnostic, "Diagnostic"] for diagnostic in diagnostic_rows]
+        body += table(["Item", "Observed", "Criterion or context", "Result", "Role"], combined) + '</section>'
         svg, files = evidence_figure(stage, root / "figures" if export_figures else None)
         if svg:
-            body += '<section><h2>Observed and model-fitted distributions</h2>' + svg
-            body += '<p class="muted">Frequency = minor count / sum of the two leading allele counts. All three rows use the same fitting SNPs and bins. Each model is shown with its own fitted parameters, the observed depth distribution and the same discrete truncation as the likelihood. No smoothing. ΔBIC is relative to the best model; BEST identifies the best candidate, not necessarily a definitive call.</p></section>'
-        if stage.get("chromosomes") and svg:
-            body += '<p class="muted">The lower matrix shows chromosome model support: filled cells indicate informative support; hatched cells indicate low BIC separation; gray NA columns indicate insufficient or unresolved evidence. Only sequences with fitting SNPs in the final stage are shown. These diagnostics do not change the global call.</p>'
+            body += '<section>' + svg + '</section>'
     else:
         files = []
-    technical = reasons + warnings
+    technical = [code for code in reasons + warnings if code != "A_AT_UPPER_BOUNDARY"]
     body += '<section><details><summary>Detailed diagnostics</summary>'
-    body += ''.join(f'<p><code>{esc(c)}</code>: {esc(MESSAGES.get(c, c))}</p>' for c in technical) or '<p>No additional warnings.</p>'
+    body += ''.join(f'<p><code>{esc(c)}</code>: {esc(MESSAGES.get(c, c))}</p>' for c in technical) or '<p>No additional displayed warnings.</p>'
     chromosomes = stage.get("chromosomes", [])
     if chromosomes:
         body += '<h3>Reference-sequence fits</h3>' + table(["Sequence", "SNPs", "Candidate", "Delta BIC", "Status"],
             [[c.get("chrom"), c.get("sites"), c.get("best_hypothesis"), c.get("delta_bic"), c.get("status")] for c in chromosomes])
-    body += '</details><details><summary>Inputs and analysis settings</summary>'
-    request = record.get("request", {})
-    reference = record.get("reference", {})
-    body += table(["Setting", "Value"], [
-        ["BAM", request.get("bam", "NA")], ["Reference assets", request.get("assets", "NA")],
-        ["K-mer length", reference.get("kmer_length", "NA")],
-        ["Minimum region length", reference.get("min_region_length", "NA")],
-        ["Eligible reference region (Mb)", num(reference.get("eligible_bases", 0) / 1e6)],
-        ["Seed", settings.get("seed", "NA")],
-    ] + [[k, v] for k, v in request.get("filters", {}).items()])
-    actual = stage.get("counts", {}).get("thresholds", {})
-    if actual:
-        body += '<h3>Actual site filters</h3>' + table(["Setting", "Value"], list(actual.items()))
-    if record.get("input_warnings"):
-        body += '<h3>Input notices</h3>' + ''.join(f'<p>{esc(x)}</p>' for x in record["input_warnings"])
     body += '</details></section>'
     body += f'<footer>Output schema {OUTPUT_SCHEMA} · <a href="result.tsv">Result table</a> · <a href="details/run.json">Run record</a> · <a href="details/run.log">Run log</a>'
     if (root / "regions.bed").exists():

@@ -65,6 +65,7 @@ def call_batch(bam_list, assets, output_dir, **filters):
                    bam_list=dict(identity(bam_list), sha256=sha256(bam_list)),
                    assets=str(assets), assets_sha256=sha256(assets / "assets.json"),
                    filters=template.count_filters(), samtools=template.samtools_executable,
+                   min_depth_inclusive=False,
                    model_site_limits=dict(min_sites=DEFAULT_MIN_SITES, max_sites=DEFAULT_MAX_SITES),
                    output_options=dict(keep_details=template.keep_details, export_figures=template.export_figures),
                    samples=[dict(sample=x["sample"], bam=str(x["bam"])) for x in entries])

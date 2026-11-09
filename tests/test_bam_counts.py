@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import csv
 import gzip
 import shutil
 import unittest
@@ -94,6 +95,39 @@ class BamCountUnitTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("samtools"), "samtools is not installed")
 class BamCountIntegrationTests(unittest.TestCase):
+    def test_default_minimum_depth_boundary_and_explicit_override(self):
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            reference = root / 'ref.fa'
+            reference.write_text('>chr1\n' + 'A' * 200 + '\n')
+            pysam.faidx(str(reference))
+            mask = root / 'mask.bed'
+            mask.write_text('chr1\t0\t200\n')
+            bam = root / 'sample.bam'
+            header = {'HD': {'VN': '1.6', 'SO': 'coordinate'},
+                      'SQ': [{'SN': 'chr1', 'LN': 200}]}
+            with pysam.AlignmentFile(str(bam), 'wb', header=header) as handle:
+                for group, depth in enumerate((9, 10, 11)):
+                    for index in range(depth):
+                        allele = 'G' if index < depth // 2 else 'A'
+                        read = self._read(f'{group}_{index}', allele, 60, 35, 0)
+                        read.reference_start = 10 + 50 * group
+                        handle.write(read)
+            pysam.index(str(bam))
+
+            # The automatic lower bound for this BAM would be 9. The default
+            # must reject depths 9 and 10, retaining only depth > 10.
+            for overrides, expected in (({}, [11]), ({'min_depth': 9}, [10, 11]),
+                                        ({'min_depth': 11}, [])):
+                outputs = build_bam_counts(BamCountConfig(
+                    bam, reference, mask, root / str(expected), **overrides))
+                with gzip.open(outputs['biallelic_sites'], 'rt') as handle:
+                    depths = [int(row['depth']) for row in csv.DictReader(handle, delimiter='\t')]
+                self.assertEqual(depths, expected)
+                with outputs['filter_summary'].open() as handle:
+                    summary = dict(line.rstrip('\n').split('\t') for line in handle if '\t' in line)
+                self.assertEqual(int(summary['low_depth']), (3 - len(expected)) * 20)
+
     def test_observed_zero_acgt_and_uncovered_positions_are_both_counted(self):
         with TemporaryDirectory() as temporary:
             root=Path(temporary)
